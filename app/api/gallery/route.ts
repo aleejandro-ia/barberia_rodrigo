@@ -8,5 +8,7 @@ export async function GET() {
     .select('id, url, alt_text, display_order')
     .order('display_order', { ascending: true })
 
-  return NextResponse.json({ images: images ?? [] })
+  return NextResponse.json({ images: images ?? [] }, {
+    headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=120' },
+  })
 }

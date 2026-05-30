@@ -1,6 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
 import { Scissors, Heart, Handshake } from '@phosphor-icons/react'
 
@@ -74,18 +73,14 @@ const VALUES = [
   { icon: Handshake, label: 'Confianza', desc: 'Tu imagen, en buenas manos' },
 ]
 
-export default function AboutSection() {
+interface AboutSectionProps {
+  portrait?: string | null
+}
+
+export default function AboutSection({ portrait }: AboutSectionProps) {
   const shouldReduceMotion = useReducedMotion()
   const ease = [0.16, 1, 0.3, 1] as const
   const viewport = { once: true, amount: 0.2 }
-  const [portrait, setPortrait] = useState<string | null>(null)
-
-  useEffect(() => {
-    fetch('/api/settings')
-      .then((r) => r.json())
-      .then((data) => setPortrait(data.settings?.about_portrait ?? null))
-      .catch(() => {})
-  }, [])
 
   return (
     <section id="sobre-mi" className="relative py-24 md:py-36 px-6 overflow-hidden" style={{ backgroundColor: '#161310' }}>

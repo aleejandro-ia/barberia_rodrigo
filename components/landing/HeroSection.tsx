@@ -1,26 +1,29 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
 
-export default function HeroSection() {
+interface HeroSectionProps {
+  heroImage?: string | null
+}
+
+export default function HeroSection({ heroImage }: HeroSectionProps) {
   const shouldReduceMotion = useReducedMotion()
   const ease = [0.16, 1, 0.3, 1] as const
-  const [heroImage, setHeroImage] = useState<string | null>(null)
-
-  useEffect(() => {
-    fetch('/api/settings')
-      .then((r) => r.json())
-      .then((data) => setHeroImage(data.settings?.hero_image ?? null))
-      .catch(() => {})
-  }, [])
 
   return (
     <section className="relative min-h-[100dvh] flex items-center overflow-hidden" aria-label="Hero">
       {/* Background */}
       <div className="absolute inset-0 z-0">
         {heroImage ? (
-          <img src={heroImage} alt="" aria-hidden className="w-full h-full object-cover" />
+          // fetchpriority="high" — browser knows this is LCP, starts download immediately
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={heroImage}
+            alt=""
+            aria-hidden
+            className="w-full h-full object-cover"
+            fetchPriority="high"
+          />
         ) : (
           <div className="w-full h-full flex items-center justify-end" style={{ backgroundColor: '#0E0B08' }}>
             <div className="w-1/2 h-full flex flex-col items-center justify-center gap-3 opacity-20"

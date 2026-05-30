@@ -9,5 +9,7 @@ export async function GET() {
     .order('display_order', { ascending: true })
 
   if (error) return NextResponse.json({ items: [] })
-  return NextResponse.json({ items: data ?? [] })
+  return NextResponse.json({ items: data ?? [] }, {
+    headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=120' },
+  })
 }

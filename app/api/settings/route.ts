@@ -11,5 +11,7 @@ export async function GET() {
   for (const row of data ?? []) {
     settings[row.key] = row.image_url
   }
-  return NextResponse.json({ settings })
+  return NextResponse.json({ settings }, {
+    headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' },
+  })
 }
