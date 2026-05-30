@@ -206,14 +206,14 @@ function FormFields({ name, phone, notes, setName, setPhone, setNotes }: FormFie
           type="tel"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
-          placeholder="+34 600 000 000"
+          placeholder="600 123 456"
           maxLength={20}
           style={inputStyle}
           onFocus={(e) => (e.target.style.borderColor = 'rgba(201,169,110,0.5)')}
           onBlur={(e)  => (e.target.style.borderColor = 'rgba(201,169,110,0.2)')}
         />
         <p className="text-xs" style={{ color: '#3A3530' }}>
-          Incluye el prefijo (+34 para España)
+          9 dígitos sin prefijo — ej: 600 123 456
         </p>
       </div>
 
@@ -323,7 +323,7 @@ function SummaryPanel({
     !!selectedDate &&
     !!selectedSlot &&
     name.trim().length >= 2 &&
-    phone.trim().length >= 6
+    phone.replace(/\s/g, '').length === 9
 
   return (
     <div
@@ -614,8 +614,8 @@ export default function BookingSection() {
 
     const result = await bookAppointment({
       slot_date:       selectedDate,
-      slot_start_time: selectedSlot.start_time,
-      slot_end_time:   selectedSlot.end_time,
+      slot_start_time: selectedSlot.start_time.slice(0, 5),  // Postgres time = HH:MM:SS, schema expects HH:MM
+      slot_end_time:   selectedSlot.end_time.slice(0, 5),
       client_name:     name.trim(),
       client_phone:    phone.trim(),
       notes:           notes.trim() || undefined,
@@ -664,7 +664,7 @@ export default function BookingSection() {
     !!selectedDate &&
     !!selectedSlot &&
     name.trim().length >= 2 &&
-    phone.trim().length >= 6
+    phone.replace(/\s/g, '').length === 9
 
   return (
     <section

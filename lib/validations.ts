@@ -5,7 +5,10 @@ export const bookAppointmentSchema = z.object({
   slot_start_time: z.string().regex(/^\d{2}:\d{2}$/),
   slot_end_time: z.string().regex(/^\d{2}:\d{2}$/),
   client_name: z.string().min(2).max(100),
-  client_phone: z.string().min(6).max(20),
+  client_phone: z
+    .string()
+    .transform((v) => v.replace(/\s/g, ''))
+    .pipe(z.string().regex(/^\d{9}$/, 'Teléfono debe tener 9 dígitos')),
   notes: z.string().max(500).optional(),
 })
 
