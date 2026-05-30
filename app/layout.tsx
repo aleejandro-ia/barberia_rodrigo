@@ -1,9 +1,15 @@
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono, Dancing_Script } from 'next/font/google'
+import { Outfit, Dancing_Script } from 'next/font/google'
 import './globals.css'
 
-const geist = Geist({ subsets: ['latin'], variable: '--font-geist' })
-const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono' })
+/* Main font — Outfit: more premium, better x-height, cleaner at small sizes */
+const outfit = Outfit({
+  subsets: ['latin'],
+  variable: '--font-outfit',
+  weight: ['300', '400', '500', '600', '700', '800'],
+})
+
+/* Script font — kept for signature + Maestro Barbero */
 const dancingScript = Dancing_Script({
   subsets: ['latin'],
   variable: '--font-dancing',
@@ -19,7 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es" className="dark">
       <body
-        className={`${geist.variable} ${geistMono.variable} ${dancingScript.variable} antialiased`}
+        className={`${outfit.variable} ${dancingScript.variable} antialiased`}
         style={{ backgroundColor: '#0E0B08', color: '#F2EDE7' }}
       >
         {children}

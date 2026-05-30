@@ -2,24 +2,42 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { cn } from '@/lib/utils'
+import { CalendarBlank, Images, Clock, SignOut } from '@phosphor-icons/react'
 
 const navLinks = [
-  { href: '/admin', label: 'Citas' },
-  { href: '/admin/gallery', label: 'Galería' },
-  { href: '/admin/schedule', label: 'Horarios' },
+  { href: '/admin', label: 'Citas', Icon: CalendarBlank },
+  { href: '/admin/gallery', label: 'Galería', Icon: Images },
+  { href: '/admin/schedule', label: 'Horarios', Icon: Clock },
 ]
 
 export default function AdminNav() {
   const pathname = usePathname()
 
   return (
-    <nav className="bg-zinc-900 border-b border-zinc-800">
-      <div className="max-w-6xl mx-auto px-4 flex items-center justify-between h-14">
+    <nav
+      className="sticky top-0 z-40"
+      style={{
+        backgroundColor: 'rgba(14,11,8,0.92)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        borderBottom: '1px solid rgba(201,169,110,0.1)',
+      }}
+    >
+      <div className="max-w-6xl mx-auto px-5 flex items-center justify-between h-14">
+        {/* Logo + links */}
         <div className="flex items-center gap-6">
-          <span className="text-sm font-semibold text-zinc-100 whitespace-nowrap">
-            Barbería Rodrigo — Admin
+          <Link
+            href="/admin"
+            className="text-xl font-bold tracking-tight select-none"
+            style={{ color: '#C9A96E' }}
+          >
+            R.
+          </Link>
+
+          <span className="text-xs font-medium uppercase tracking-widest hidden sm:block" style={{ color: '#4A4540' }}>
+            Panel Admin
           </span>
+
           <div className="flex items-center gap-1">
             {navLinks.map((link) => {
               const isActive =
@@ -30,25 +48,32 @@ export default function AdminNav() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={cn(
-                    'px-3 py-1.5 rounded-md text-sm transition-colors',
-                    isActive
-                      ? 'bg-zinc-700 text-zinc-100'
-                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
-                  )}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200"
+                  style={{
+                    color: isActive ? '#C9A96E' : '#7A7268',
+                    backgroundColor: isActive ? 'rgba(201,169,110,0.1)' : 'transparent',
+                    border: isActive ? '1px solid rgba(201,169,110,0.2)' : '1px solid transparent',
+                  }}
                 >
+                  <link.Icon size={14} weight={isActive ? 'fill' : 'regular'} />
                   {link.label}
                 </Link>
               )
             })}
           </div>
         </div>
+
+        {/* Sign out */}
         <form action="/auth/sign-out" method="POST">
           <button
             type="submit"
-            className="text-sm text-zinc-400 hover:text-zinc-200 transition-colors px-3 py-1.5 rounded-md hover:bg-zinc-800"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-all duration-200"
+            style={{ color: '#4A4540' }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = '#F2EDE7')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = '#4A4540')}
           >
-            Cerrar sesión
+            <SignOut size={14} />
+            <span className="hidden sm:inline">Salir</span>
           </button>
         </form>
       </div>

@@ -2,9 +2,6 @@
 
 import { useState, useCallback } from 'react'
 import { deleteAvailabilitySlot } from '@/actions/availability'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import {
   Dialog,
   DialogContent,
@@ -23,6 +20,18 @@ interface Slot {
 
 function todayStr() {
   return new Date().toISOString().split('T')[0]
+}
+
+const inputStyle: React.CSSProperties = {
+  backgroundColor: '#1C1915',
+  border: '1px solid rgba(201,169,110,0.15)',
+  color: '#F2EDE7',
+  borderRadius: '0.75rem',
+  padding: '0.65rem 0.875rem',
+  fontSize: '0.875rem',
+  outline: 'none',
+  width: '100%',
+  transition: 'border-color 0.15s',
 }
 
 export default function ScheduleManager() {
@@ -69,8 +78,8 @@ export default function ScheduleManager() {
           result.error === 'HAS_BOOKING'
             ? 'Esta franja tiene una cita confirmada y no puede eliminarse.'
             : result.error === 'NOT_FOUND'
-            ? 'Franja no encontrada.'
-            : 'Error al eliminar.'
+              ? 'Franja no encontrada.'
+              : 'Error al eliminar.'
         setDeleteError(msg)
       } else {
         setDeleteTarget(null)
@@ -83,51 +92,68 @@ export default function ScheduleManager() {
 
   return (
     <>
-      <div className="space-y-8">
-        {/* Date picker + slots */}
-        <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-5">
-          <h2 className="text-sm font-semibold text-zinc-200 mb-4">Ver franjas por fecha</h2>
+      <div className="flex flex-col gap-6">
+        {/* Slots viewer */}
+        <div
+          className="rounded-2xl p-6"
+          style={{ backgroundColor: '#161310', border: '1px solid rgba(201,169,110,0.1)' }}
+        >
+          <h2 className="text-sm font-semibold uppercase tracking-widest mb-5" style={{ color: '#C9A96E' }}>
+            Franjas por fecha
+          </h2>
+
           <div className="mb-5">
-            <Label htmlFor="schedule-date" className="text-zinc-400 text-xs mb-1.5 block">
+            <label className="text-xs font-medium uppercase tracking-widest block mb-2" style={{ color: '#7A7268' }}>
               Fecha
-            </Label>
-            <Input
+            </label>
+            <input
               id="schedule-date"
               type="date"
               value={date}
               onChange={handleDateChange}
-              className="text-zinc-300 max-w-xs"
+              style={{ ...inputStyle, maxWidth: '220px' }}
+              onFocus={(e) => (e.target.style.borderColor = 'rgba(201,169,110,0.5)')}
+              onBlur={(e) => (e.target.style.borderColor = 'rgba(201,169,110,0.15)')}
             />
           </div>
 
           {slotsLoading ? (
-            <div className="text-zinc-500 text-sm py-4">Cargando franjas…</div>
+            <div className="flex items-center gap-2 py-4">
+              <div className="w-4 h-4 rounded-full border-2 animate-spin" style={{ borderColor: 'rgba(201,169,110,0.2)', borderTopColor: '#C9A96E' }} />
+              <span className="text-sm" style={{ color: '#7A7268' }}>Cargando…</span>
+            </div>
           ) : slotsError ? (
-            <div className="text-red-400 text-sm py-4">{slotsError}</div>
+            <p className="text-sm py-4" style={{ color: '#FF8080' }}>{slotsError}</p>
           ) : !date ? (
-            <div className="text-zinc-500 text-sm py-4">Selecciona una fecha</div>
+            <p className="text-sm py-4" style={{ color: '#4A4540' }}>Selecciona una fecha</p>
           ) : slots.length === 0 ? (
-            <div className="text-zinc-500 text-sm py-4">No hay franjas para esta fecha</div>
+            <p className="text-sm py-4" style={{ color: '#4A4540' }}>No hay franjas para esta fecha</p>
           ) : (
-            <div className="space-y-2">
+            <div className="flex flex-wrap gap-2">
               {slots.map((slot) => (
                 <div
                   key={slot.id}
-                  className="flex items-center justify-between px-4 py-2.5 rounded-md bg-zinc-800 border border-zinc-700"
+                  className="group flex items-center gap-2 px-4 py-2 rounded-full transition-all"
+                  style={{
+                    backgroundColor: 'rgba(201,169,110,0.06)',
+                    border: '1px solid rgba(201,169,110,0.15)',
+                  }}
                 >
-                  <span className="text-sm text-zinc-200">
-                    {slot.start_time.slice(0, 5)} – {slot.end_time.slice(0, 5)}
+                  {/* Green dot */}
+                  <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: '#4ADE80' }} />
+                  <span className="text-sm font-medium tabular-nums" style={{ color: '#F2EDE7' }}>
+                    {slot.start_time.slice(0, 5)}
                   </span>
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs text-emerald-400">Disponible</span>
-                    <Button
-                      variant="destructive"
-                      size="xs"
-                      onClick={() => setDeleteTarget(slot)}
-                    >
-                      Eliminar
-                    </Button>
-                  </div>
+                  <button
+                    onClick={() => setDeleteTarget(slot)}
+                    className="ml-1 text-xs transition-colors opacity-0 group-hover:opacity-100"
+                    style={{ color: '#7A7268' }}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = '#FF8080')}
+                    onMouseLeave={(e) => (e.currentTarget.style.color = '#7A7268')}
+                    aria-label="Eliminar franja"
+                  >
+                    ✕
+                  </button>
                 </div>
               ))}
             </div>
@@ -145,10 +171,7 @@ export default function ScheduleManager() {
       <Dialog
         open={!!deleteTarget}
         onOpenChange={(open) => {
-          if (!open) {
-            setDeleteTarget(null)
-            setDeleteError(null)
-          }
+          if (!open) { setDeleteTarget(null); setDeleteError(null) }
         }}
       >
         <DialogContent showCloseButton={false}>
@@ -163,29 +186,28 @@ export default function ScheduleManager() {
             </DialogDescription>
           </DialogHeader>
           {deleteError && (
-            <p className="text-sm text-red-400 bg-red-500/10 px-3 py-2 rounded-md">
+            <p className="text-sm px-3 py-2 rounded-xl" style={{ color: '#FF8080', backgroundColor: 'rgba(255,128,128,0.08)' }}>
               {deleteError}
             </p>
           )}
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setDeleteTarget(null)
-                setDeleteError(null)
-              }}
+            <button
+              onClick={() => { setDeleteTarget(null); setDeleteError(null) }}
               disabled={deleting}
+              className="px-4 py-2 rounded-full text-sm font-medium"
+              style={{ color: '#7A7268', border: '1px solid rgba(255,255,255,0.08)' }}
             >
               Cancelar
-            </Button>
+            </button>
             {!deleteError && (
-              <Button
-                variant="destructive"
+              <button
                 onClick={handleDelete}
                 disabled={deleting}
+                className="px-4 py-2 rounded-full text-sm font-semibold"
+                style={{ backgroundColor: 'rgba(255,80,80,0.15)', color: '#FF8080', border: '1px solid rgba(255,80,80,0.25)' }}
               >
                 {deleting ? 'Eliminando…' : 'Sí, eliminar'}
-              </Button>
+              </button>
             )}
           </DialogFooter>
         </DialogContent>
