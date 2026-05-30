@@ -96,7 +96,7 @@ export default function AboutSection({ portrait }: AboutSectionProps) {
           className="flex justify-center"
         >
           <OrnateCircleFrame>
-            <PortraitContent url={portrait} />
+            <PortraitContent url={portrait ?? null} />
           </OrnateCircleFrame>
         </motion.div>
 
