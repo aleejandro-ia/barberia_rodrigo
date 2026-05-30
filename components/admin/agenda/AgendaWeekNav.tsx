@@ -1,0 +1,76 @@
+'use client'
+
+import { CaretLeft, CaretRight } from '@phosphor-icons/react'
+
+interface AgendaWeekNavProps {
+  weekLabel: string
+  onPrev:    () => void
+  onNext:    () => void
+  onToday:   () => void
+  loading:   boolean
+}
+
+export default function AgendaWeekNav({ weekLabel, onPrev, onNext, onToday, loading }: AgendaWeekNavProps) {
+  const btn: React.CSSProperties = {
+    display:         'flex',
+    alignItems:      'center',
+    justifyContent:  'center',
+    width:           32,
+    height:          32,
+    borderRadius:    '50%',
+    border:          '1px solid rgba(201,169,110,0.2)',
+    backgroundColor: 'transparent',
+    color:           '#C9A96E',
+    cursor:          'pointer',
+    transition:      'background-color 0.15s',
+    flexShrink:      0,
+  }
+
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <div className="flex items-center gap-2">
+        <button
+          style={btn}
+          onClick={onPrev}
+          disabled={loading}
+          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(201,169,110,0.08)')}
+          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+          aria-label="Semana anterior"
+        >
+          <CaretLeft size={14} weight="bold" />
+        </button>
+
+        <h2 className="text-base font-semibold tracking-tight" style={{ color: '#F2EDE7', minWidth: 200, textAlign: 'center' }}>
+          {weekLabel}
+        </h2>
+
+        <button
+          style={btn}
+          onClick={onNext}
+          disabled={loading}
+          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(201,169,110,0.08)')}
+          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+          aria-label="Semana siguiente"
+        >
+          <CaretRight size={14} weight="bold" />
+        </button>
+      </div>
+
+      <button
+        onClick={onToday}
+        disabled={loading}
+        className="px-3 py-1.5 rounded-full text-xs font-medium transition-all"
+        style={{
+          border:          '1px solid rgba(201,169,110,0.25)',
+          color:           '#C9A96E',
+          backgroundColor: 'transparent',
+          cursor:          'pointer',
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(201,169,110,0.08)')}
+        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+      >
+        Hoy
+      </button>
+    </div>
+  )
+}

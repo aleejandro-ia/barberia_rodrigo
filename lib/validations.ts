@@ -31,3 +31,26 @@ export const bulkCreateSlotsSchema = z.object({
   to_time: z.string().regex(/^\d{2}:\d{2}$/),
   slot_duration: z.number().int().min(15).max(120).default(30),
 })
+
+/* ─── Admin Agenda schemas ───────────────────────────────────── */
+
+export const adminCreateAppointmentSchema = z.object({
+  slot_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  slot_start_time: z.string().regex(/^\d{2}:\d{2}$/),
+  slot_end_time: z.string().regex(/^\d{2}:\d{2}$/),
+  client_name: z.string().min(2).max(100),
+  client_phone: z
+    .string()
+    .transform((v) => v.replace(/\s/g, ''))
+    .pipe(z.string().regex(/^\d{9}$/, 'Teléfono debe tener 9 dígitos')),
+  notes: z.string().max(500).optional(),
+})
+
+export const adminEditAppointmentSchema = z.object({
+  client_name: z.string().min(2).max(100),
+  client_phone: z
+    .string()
+    .transform((v) => v.replace(/\s/g, ''))
+    .pipe(z.string().regex(/^\d{9}$/, 'Teléfono debe tener 9 dígitos')),
+  notes: z.string().max(500).optional(),
+})
