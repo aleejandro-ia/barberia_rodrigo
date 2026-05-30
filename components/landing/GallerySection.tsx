@@ -4,25 +4,41 @@ import { useState, useEffect } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
 import type { GalleryImage } from '@/types'
 
-const PLACEHOLDER_SEEDS = [
-  'haircut-1', 'haircut-2', 'haircut-3', 'haircut-4',
-  'haircut-5', 'haircut-6', 'haircut-7', 'haircut-8',
-  'haircut-9', 'haircut-10', 'haircut-11', 'haircut-12',
-]
+/* ──────────────────────────────────────────────
+   Skeleton / placeholder cards
+─────────────────────────────────────────────── */
+function GalleryPlaceholder({ index }: { index: number }) {
+  return (
+    <div
+      className="w-full h-full flex flex-col items-center justify-center gap-2"
+      style={{
+        backgroundColor: '#0D0D0D',
+        border: '1px dashed rgba(201,169,110,0.12)',
+        borderRadius: 'inherit',
+      }}
+    >
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style={{ color: 'rgba(201,169,110,0.2)' }}>
+        <rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" strokeWidth="1.2" />
+        <circle cx="12" cy="11" r="3" stroke="currentColor" strokeWidth="1.2" />
+        <path d="M6 20c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="currentColor" strokeWidth="1.2" />
+      </svg>
+      <span className="text-xs" style={{ color: 'rgba(201,169,110,0.2)' }}>
+        Foto {index + 1}
+      </span>
+    </div>
+  )
+}
 
-const PLACEHOLDER_IMAGES: GalleryImage[] = PLACEHOLDER_SEEDS.map((seed, i) => ({
-  id: seed,
-  url: `https://picsum.photos/seed/${seed}/800/600`,
-  alt_text: `Trabajo de barberia ${i + 1}`,
-  display_order: i,
-}))
-
-// Asymmetric grid spans: gives a more editorial layout
+/* Asymmetric column spans for editorial grid feel */
 const SPANS = [2, 1, 1, 1, 2, 1, 2, 1, 1, 1, 2, 1]
+
+/* Empty placeholder grid — shown when no images loaded */
+const EMPTY_COUNT = 12
 
 export default function GallerySection() {
   const shouldReduceMotion = useReducedMotion()
   const ease = [0.16, 1, 0.3, 1] as const
+
   const [images, setImages] = useState<GalleryImage[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -33,14 +49,15 @@ export default function GallerySection() {
         if (Array.isArray(data?.images) && data.images.length > 0) {
           setImages(data.images)
         } else {
-          setImages(PLACEHOLDER_IMAGES)
+          setImages([])
         }
       })
-      .catch(() => setImages(PLACEHOLDER_IMAGES))
+      .catch(() => setImages([]))
       .finally(() => setLoading(false))
   }, [])
 
-  const displayed = loading ? PLACEHOLDER_IMAGES : images
+  const hasImages = images.length > 0
+  const itemCount = hasImages ? images.length : EMPTY_COUNT
 
   return (
     <section
@@ -57,18 +74,22 @@ export default function GallerySection() {
           transition={{ duration: 0.7, ease }}
           className="mb-14"
         >
+          <p className="text-xs font-medium uppercase tracking-[0.2em] mb-4" style={{ color: '#C9A96E' }}>
+            Galería
+          </p>
           <h2
             className="text-4xl md:text-5xl font-bold tracking-tight"
             style={{ color: '#F5F5F5' }}
           >
-            Nuestro trabajo
+            Estilo que habla por ti
           </h2>
         </motion.div>
 
         {/* Grid */}
         {loading ? (
+          /* Loading skeleton */
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {PLACEHOLDER_IMAGES.map((_, i) => (
+            {Array.from({ length: EMPTY_COUNT }).map((_, i) => (
               <div
                 key={i}
                 className="aspect-[4/3] rounded-xl animate-pulse"
@@ -78,32 +99,43 @@ export default function GallerySection() {
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 auto-rows-auto">
-            {displayed.map((img, i) => {
+            {Array.from({ length: itemCount }).map((_, i) => {
               const span = SPANS[i % SPANS.length]
+              const img = hasImages ? images[i] : null
+
               return (
                 <motion.div
-                  key={img.id}
+                  key={img?.id ?? `placeholder-${i}`}
                   initial={shouldReduceMotion ? false : { opacity: 0, y: 16 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, amount: 0.1 }}
                   transition={{ duration: 0.6, delay: (i % 4) * 0.05, ease }}
-                  className={`overflow-hidden rounded-xl ${
-                    span === 2 ? 'md:col-span-2' : 'col-span-1'
-                  }`}
+                  className={`overflow-hidden rounded-xl ${span === 2 ? 'md:col-span-2' : 'col-span-1'}`}
                   style={{ border: '1px solid rgba(201,169,110,0.08)' }}
                 >
                   <div className="aspect-[4/3] overflow-hidden group cursor-pointer">
-                    <img
-                      src={img.url}
-                      alt={img.alt_text || `Trabajo ${i + 1}`}
-                      className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
-                      loading="lazy"
-                    />
+                    {img ? (
+                      <img
+                        src={img.url}
+                        alt={img.alt_text || `Trabajo ${i + 1}`}
+                        className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <GalleryPlaceholder index={i} />
+                    )}
                   </div>
                 </motion.div>
               )
             })}
           </div>
+        )}
+
+        {/* Admin hint when empty */}
+        {!loading && !hasImages && (
+          <p className="mt-8 text-center text-xs" style={{ color: '#333' }}>
+            Añade fotos desde el panel de administración → Galería
+          </p>
         )}
       </div>
     </section>

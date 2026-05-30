@@ -10,6 +10,7 @@ import type { User as SupabaseUser } from '@supabase/supabase-js'
 
 const navLinks = [
   { label: 'Sobre mí', href: '#sobre-mi' },
+  { label: 'Servicios', href: '#servicios' },
   { label: 'Trabajos', href: '#trabajos' },
   { label: 'Reservar', href: '#reservar' },
 ]
