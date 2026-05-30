@@ -170,16 +170,22 @@ function BlockedState({ booking }: { booking: ActiveBooking | null }) {
 }
 
 /* ─── Form fields (shared between mobile + desktop) ────────── */
+const SERVICES = [
+  { value: 'Corte Clásico',    label: 'Corte Clásico — 7€' },
+  { value: 'Corte',            label: 'Corte — 9€' },
+  { value: 'Corte con Barba',  label: 'Corte con Barba — 10€' },
+]
+
 interface FormFieldsProps {
-  name:     string
-  phone:    string
-  notes:    string
-  setName:  (v: string) => void
-  setPhone: (v: string) => void
-  setNotes: (v: string) => void
+  name:       string
+  phone:      string
+  service:    string
+  setName:    (v: string) => void
+  setPhone:   (v: string) => void
+  setService: (v: string) => void
 }
 
-function FormFields({ name, phone, notes, setName, setPhone, setNotes }: FormFieldsProps) {
+function FormFields({ name, phone, service, setName, setPhone, setService }: FormFieldsProps) {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-1">
@@ -219,18 +225,32 @@ function FormFields({ name, phone, notes, setName, setPhone, setNotes }: FormFie
 
       <div className="flex flex-col gap-1">
         <label className="text-sm font-medium" style={{ color: '#5A5450' }}>
-          Notas <span style={{ color: '#3A3530' }}>(opcional)</span>
+          Servicio
         </label>
-        <textarea
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder="Tipo de corte, preferencias..."
-          maxLength={400}
-          rows={2}
-          style={{ ...inputStyle, resize: 'none' }}
+        <select
+          value={service}
+          onChange={(e) => setService(e.target.value)}
+          required
+          style={{
+            ...inputStyle,
+            appearance: 'none',
+            WebkitAppearance: 'none',
+            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23C9A96E' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`,
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'right 0.875rem center',
+            paddingRight: '2.25rem',
+            cursor: 'pointer',
+          }}
           onFocus={(e) => (e.target.style.borderColor = 'rgba(201,169,110,0.5)')}
           onBlur={(e)  => (e.target.style.borderColor = 'rgba(201,169,110,0.2)')}
-        />
+        >
+          <option value="" disabled style={{ backgroundColor: '#1A1A1A' }}>Selecciona un servicio…</option>
+          {SERVICES.map((s) => (
+            <option key={s.value} value={s.value} style={{ backgroundColor: '#1A1A1A' }}>
+              {s.label}
+            </option>
+          ))}
+        </select>
       </div>
     </div>
   )
@@ -284,12 +304,12 @@ function ErrorBanner({ message }: { message: string }) {
 interface SummaryPanelProps {
   selectedDate: string | null
   selectedSlot: Slot | null
-  name:     string
-  phone:    string
-  notes:    string
-  setName:  (v: string) => void
-  setPhone: (v: string) => void
-  setNotes: (v: string) => void
+  name:       string
+  phone:      string
+  service:    string
+  setName:    (v: string) => void
+  setPhone:   (v: string) => void
+  setService: (v: string) => void
   onConfirm:  () => void
   onChangeDate: () => void
   onChangeSlot: () => void
@@ -303,10 +323,10 @@ function SummaryPanel({
   selectedSlot,
   name,
   phone,
-  notes,
+  service,
   setName,
   setPhone,
-  setNotes,
+  setService,
   onConfirm,
   onChangeDate,
   onChangeSlot,
@@ -323,7 +343,8 @@ function SummaryPanel({
     !!selectedDate &&
     !!selectedSlot &&
     name.trim().length >= 2 &&
-    phone.replace(/\s/g, '').length === 9
+    phone.replace(/\s/g, '').length === 9 &&
+    service.length > 0
 
   return (
     <div
@@ -447,8 +468,8 @@ function SummaryPanel({
         {step === 'form' && (
           <div className="mt-1">
             <FormFields
-              name={name} phone={phone} notes={notes}
-              setName={setName} setPhone={setPhone} setNotes={setNotes}
+              name={name} phone={phone} service={service}
+              setName={setName} setPhone={setPhone} setService={setService}
             />
           </div>
         )}
@@ -484,7 +505,7 @@ export default function BookingSection() {
   const [activeBooking, setActiveBooking] = useState<ActiveBooking | null>(null)
   const [name,  setName]  = useState('')
   const [phone, setPhone] = useState('')
-  const [notes, setNotes] = useState('')
+  const [service, setService] = useState('')
   const [loading,   setLoading]   = useState(false)
   const [error,     setError]     = useState<string | null>(null)
   const [user,      setUser]      = useState<SupabaseUser | null>(null)
@@ -618,7 +639,7 @@ export default function BookingSection() {
       slot_end_time:   selectedSlot.end_time.slice(0, 5),
       client_name:     name.trim(),
       client_phone:    phone.trim(),
-      notes:           notes.trim() || undefined,
+      notes:           service || undefined,
     })
 
     setLoading(false)
@@ -652,7 +673,7 @@ export default function BookingSection() {
     setConfirmedAppointment(null)
     setName('')
     setPhone('')
-    setNotes('')
+    setService('')
     setError(null)
   }
 
@@ -664,7 +685,8 @@ export default function BookingSection() {
     !!selectedDate &&
     !!selectedSlot &&
     name.trim().length >= 2 &&
-    phone.replace(/\s/g, '').length === 9
+    phone.replace(/\s/g, '').length === 9 &&
+    service.length > 0
 
   return (
     <section
@@ -790,8 +812,8 @@ export default function BookingSection() {
                 </div>
 
                 <FormFields
-                  name={name} phone={phone} notes={notes}
-                  setName={setName} setPhone={setPhone} setNotes={setNotes}
+                  name={name} phone={phone} service={service}
+                  setName={setName} setPhone={setPhone} setService={setService}
                 />
 
                 {error && <div className="mt-3"><ErrorBanner message={error} /></div>}
@@ -829,8 +851,8 @@ export default function BookingSection() {
                 <SummaryPanel
                   selectedDate={selectedDate}
                   selectedSlot={selectedSlot}
-                  name={name} phone={phone} notes={notes}
-                  setName={setName} setPhone={setPhone} setNotes={setNotes}
+                  name={name} phone={phone} service={service}
+                  setName={setName} setPhone={setPhone} setService={setService}
                   onConfirm={handleConfirm}
                   onChangeDate={handleBackToDate}
                   onChangeSlot={handleBackToSlot}

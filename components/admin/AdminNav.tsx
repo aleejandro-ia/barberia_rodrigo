@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { CalendarBlank, Images, Clock, SignOut, ArrowsLeftRight, Sliders } from '@phosphor-icons/react'
+import { CalendarBlank, Images, Clock, SignOut, ArrowsLeftRight, Sliders, ArrowLeft } from '@phosphor-icons/react'
 
 const navLinks = [
   { href: '/admin', label: 'Citas', Icon: CalendarBlank },
@@ -65,19 +65,32 @@ export default function AdminNav() {
           </div>
         </div>
 
-        {/* Sign out */}
-        <form action="/auth/sign-out" method="POST">
-          <button
-            type="submit"
+        {/* Right actions */}
+        <div className="flex items-center gap-2">
+          <Link
+            href="/"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-all duration-200"
             style={{ color: '#4A4540' }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = '#F2EDE7')}
+            onMouseEnter={(e) => (e.currentTarget.style.color = '#C9A96E')}
             onMouseLeave={(e) => (e.currentTarget.style.color = '#4A4540')}
           >
-            <SignOut size={14} />
-            <span className="hidden sm:inline">Salir</span>
-          </button>
-        </form>
+            <ArrowLeft size={14} />
+            <span className="hidden sm:inline">Volver al sitio</span>
+          </Link>
+
+          <form action="/auth/sign-out" method="POST">
+            <button
+              type="submit"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-all duration-200"
+              style={{ color: '#4A4540' }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = '#F2EDE7')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = '#4A4540')}
+            >
+              <SignOut size={14} />
+              <span className="hidden sm:inline">Salir</span>
+            </button>
+          </form>
+        </div>
       </div>
     </nav>
   )
