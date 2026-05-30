@@ -15,8 +15,10 @@ const TICKS = Array.from({ length: TICK_COUNT }, (_, i) => {
   const isLarge = angleDeg % 30 === 0
   const rOuter = 154, rInner = isLarge ? 142 : 150
   return {
-    x1: cx + rOuter * Math.cos(angleRad), y1: cy + rOuter * Math.sin(angleRad),
-    x2: cx + rInner * Math.cos(angleRad), y2: cy + rInner * Math.sin(angleRad),
+    x1: parseFloat((cx + rOuter * Math.cos(angleRad)).toFixed(4)),
+    y1: parseFloat((cy + rOuter * Math.sin(angleRad)).toFixed(4)),
+    x2: parseFloat((cx + rInner * Math.cos(angleRad)).toFixed(4)),
+    y2: parseFloat((cy + rInner * Math.sin(angleRad)).toFixed(4)),
     isLarge,
   }
 })
