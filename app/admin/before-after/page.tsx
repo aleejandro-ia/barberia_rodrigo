@@ -1,30 +1,37 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import GalleryManager from '@/components/admin/GalleryManager'
-import type { GalleryImage } from '@/types'
+import BeforeAfterManager from '@/components/admin/BeforeAfterManager'
 
-export default function AdminGalleryPage() {
-  const [images, setImages] = useState<GalleryImage[]>([])
+interface Item {
+  id: string
+  before_url: string
+  after_url: string
+  description: string | null
+  display_order: number
+}
+
+export default function AdminBeforeAfterPage() {
+  const [items, setItems] = useState<Item[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  async function fetchImages() {
+  async function fetchItems() {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch('/api/gallery')
+      const res = await fetch('/api/before-after')
       if (!res.ok) throw new Error()
       const data = await res.json()
-      setImages(data.images ?? [])
+      setItems(data.items ?? [])
     } catch {
-      setError('Error al cargar la galería')
+      setError('Error al cargar transformaciones')
     } finally {
       setLoading(false)
     }
   }
 
-  useEffect(() => { fetchImages() }, [])
+  useEffect(() => { fetchItems() }, [])
 
   return (
     <div>
@@ -33,7 +40,7 @@ export default function AdminGalleryPage() {
           Panel Admin
         </p>
         <h1 className="text-2xl font-bold tracking-tight" style={{ color: '#F2EDE7' }}>
-          Galería
+          Antes &amp; Después
         </h1>
       </div>
 
@@ -44,7 +51,7 @@ export default function AdminGalleryPage() {
       ) : error ? (
         <div className="text-center py-16 text-sm" style={{ color: '#FF8080' }}>{error}</div>
       ) : (
-        <GalleryManager images={images} onRefresh={fetchImages} />
+        <BeforeAfterManager items={items} onRefresh={fetchItems} />
       )}
     </div>
   )
