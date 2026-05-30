@@ -3,30 +3,31 @@
 import { motion, useReducedMotion } from 'motion/react'
 
 function ImagePlaceholder({ label }: { label: string }) {
+  const isAfter = label === 'Después'
   return (
     <div
       className="w-full h-full flex flex-col items-center justify-center gap-2"
-      style={{ backgroundColor: '#0D0D0D', borderRadius: 'inherit' }}
+      style={{ backgroundColor: '#1A1713', borderRadius: 'inherit' }}
     >
-      <svg width="32" height="32" viewBox="0 0 32 32" fill="none" style={{ color: 'rgba(201,169,110,0.3)' }}>
-        <rect x="2" y="6" width="28" height="20" rx="3" stroke="currentColor" strokeWidth="1.5" strokeDasharray="3 2" />
-        <circle cx="16" cy="14" r="5" stroke="currentColor" strokeWidth="1.5" />
-        <path d="M8 26c0-4.418 3.582-8 8-8s8 3.582 8 8" stroke="currentColor" strokeWidth="1.5" />
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none"
+        style={{ color: isAfter ? 'rgba(201,169,110,0.4)' : 'rgba(255,255,255,0.15)' }}>
+        <circle cx="14" cy="9" r="5" stroke="currentColor" strokeWidth="1.3" />
+        <path d="M5 27c0-4.97 4.03-9 9-9s9 4.03 9 9" stroke="currentColor" strokeWidth="1.3" />
       </svg>
-      <span className="text-xs font-bold uppercase tracking-widest" style={{ color: 'rgba(201,169,110,0.35)' }}>
+      <span
+        className="text-xs font-bold uppercase tracking-widest"
+        style={{ color: isAfter ? 'rgba(201,169,110,0.5)' : 'rgba(255,255,255,0.2)' }}
+      >
         {label}
-      </span>
-      <span className="text-xs" style={{ color: 'rgba(255,255,255,0.1)' }}>
-        Añadir desde admin
       </span>
     </div>
   )
 }
 
-/* Placeholder pairs — Phase 2 will fetch from API */
 const PAIRS = [
-  { id: '1', label: 'Corte clásico' },
-  { id: '2', label: 'Fade + barba' },
+  { id: '1', label: 'Fade clásico' },
+  { id: '2', label: 'Degradado + barba' },
+  { id: '3', label: 'Corte texturizado' },
 ]
 
 export default function BeforeAfterSection() {
@@ -38,7 +39,7 @@ export default function BeforeAfterSection() {
     <section
       id="antes-despues"
       className="py-24 md:py-36 px-6"
-      style={{ backgroundColor: '#0A0A0A' }}
+      style={{ backgroundColor: '#0E0B08' }}
     >
       <div className="max-w-6xl mx-auto">
         {/* Header */}
@@ -47,71 +48,63 @@ export default function BeforeAfterSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={viewport}
           transition={{ duration: 0.7, ease }}
-          className="mb-14"
+          className="mb-14 text-center"
         >
-          <p className="text-xs font-medium uppercase tracking-[0.2em] mb-4" style={{ color: '#C9A96E' }}>
+          <p className="text-xs font-medium uppercase tracking-[0.25em] mb-4" style={{ color: '#C9A96E' }}>
             Transformaciones
           </p>
           <h2
-            className="text-4xl md:text-5xl font-bold tracking-tight"
-            style={{ color: '#F5F5F5' }}
+            className="text-3xl md:text-5xl font-bold tracking-tight"
+            style={{ color: '#F2EDE7' }}
           >
             Antes &amp; Después
           </h2>
         </motion.div>
 
-        {/* Pairs grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* 3 pairs grid — matches reference */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {PAIRS.map((pair, i) => (
             <motion.div
               key={pair.id}
               initial={shouldReduceMotion ? false : { opacity: 0, y: 28 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={viewport}
-              transition={{ duration: 0.7, delay: i * 0.12, ease }}
+              transition={{ duration: 0.6, delay: i * 0.1, ease }}
               className="flex flex-col gap-2"
             >
-              {/* Label */}
-              <p className="text-xs font-medium uppercase tracking-widest mb-2" style={{ color: '#555' }}>
+              {/* Pair label */}
+              <p className="text-xs uppercase tracking-widest" style={{ color: '#4A4540' }}>
                 {pair.label}
               </p>
 
               {/* Before / After side by side */}
-              <div className="grid grid-cols-2 gap-2">
-                {/* Antes */}
-                <div className="flex flex-col gap-1.5">
+              <div className="grid grid-cols-2 gap-1.5">
+                <div className="flex flex-col gap-1">
                   <div
-                    className="relative overflow-hidden rounded-xl"
+                    className="overflow-hidden rounded-xl"
                     style={{
                       aspectRatio: '3/4',
-                      border: '1px dashed rgba(201,169,110,0.15)',
+                      border: '1px solid rgba(255,255,255,0.06)',
                     }}
                   >
-                    <ImagePlaceholder label="ANTES" />
+                    <ImagePlaceholder label="Antes" />
                   </div>
-                  <span
-                    className="text-center text-xs font-semibold uppercase tracking-widest"
-                    style={{ color: '#444' }}
-                  >
+                  <span className="text-center text-xs uppercase tracking-widest font-medium" style={{ color: '#4A4540' }}>
                     Antes
                   </span>
                 </div>
 
-                {/* Después */}
-                <div className="flex flex-col gap-1.5">
+                <div className="flex flex-col gap-1">
                   <div
-                    className="relative overflow-hidden rounded-xl"
+                    className="overflow-hidden rounded-xl"
                     style={{
                       aspectRatio: '3/4',
-                      border: '1px solid rgba(201,169,110,0.2)',
+                      border: '1px solid rgba(201,169,110,0.18)',
                     }}
                   >
-                    <ImagePlaceholder label="DESPUÉS" />
+                    <ImagePlaceholder label="Después" />
                   </div>
-                  <span
-                    className="text-center text-xs font-semibold uppercase tracking-widest"
-                    style={{ color: '#C9A96E' }}
-                  >
+                  <span className="text-center text-xs uppercase tracking-widest font-medium" style={{ color: '#C9A96E' }}>
                     Después
                   </span>
                 </div>
@@ -120,17 +113,28 @@ export default function BeforeAfterSection() {
           ))}
         </div>
 
-        {/* Admin note */}
-        <motion.p
+        {/* CTA */}
+        <motion.div
           initial={shouldReduceMotion ? false : { opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={viewport}
-          transition={{ duration: 0.5, delay: 0.3, ease }}
-          className="mt-8 text-center text-xs"
-          style={{ color: '#333' }}
+          transition={{ duration: 0.5, delay: 0.4, ease }}
+          className="mt-10 text-center"
         >
-          Gestiona las transformaciones desde el panel de administración
-        </motion.p>
+          <a
+            href="#reservar"
+            onClick={(e) => {
+              e.preventDefault()
+              document.querySelector('#reservar')?.scrollIntoView({ behavior: 'smooth' })
+            }}
+            className="inline-flex items-center gap-2 text-sm font-medium"
+            style={{ color: '#C9A96E' }}
+            onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.7')}
+            onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
+          >
+            Más transformaciones →
+          </a>
+        </motion.div>
       </div>
     </section>
   )

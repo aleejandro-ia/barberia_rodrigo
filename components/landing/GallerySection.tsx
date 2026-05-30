@@ -4,35 +4,25 @@ import { useState, useEffect } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
 import type { GalleryImage } from '@/types'
 
-/* ──────────────────────────────────────────────
-   Skeleton / placeholder cards
-─────────────────────────────────────────────── */
 function GalleryPlaceholder({ index }: { index: number }) {
   return (
     <div
       className="w-full h-full flex flex-col items-center justify-center gap-2"
-      style={{
-        backgroundColor: '#0D0D0D',
-        border: '1px dashed rgba(201,169,110,0.12)',
-        borderRadius: 'inherit',
-      }}
+      style={{ backgroundColor: '#1A1713', borderRadius: 'inherit' }}
     >
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style={{ color: 'rgba(201,169,110,0.2)' }}>
-        <rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" strokeWidth="1.2" />
-        <circle cx="12" cy="11" r="3" stroke="currentColor" strokeWidth="1.2" />
-        <path d="M6 20c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="currentColor" strokeWidth="1.2" />
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none" style={{ color: 'rgba(201,169,110,0.25)' }}>
+        <rect x="2" y="5" width="24" height="18" rx="2.5" stroke="currentColor" strokeWidth="1.3" />
+        <circle cx="14" cy="12" r="4" stroke="currentColor" strokeWidth="1.3" />
+        <path d="M6 23c0-4.418 3.582-8 8-8s8 3.582 8 8" stroke="currentColor" strokeWidth="1.3" />
       </svg>
       <span className="text-xs" style={{ color: 'rgba(201,169,110,0.2)' }}>
-        Foto {index + 1}
+        {index + 1}
       </span>
     </div>
   )
 }
 
-/* Asymmetric column spans for editorial grid feel */
 const SPANS = [2, 1, 1, 1, 2, 1, 2, 1, 1, 1, 2, 1]
-
-/* Empty placeholder grid — shown when no images loaded */
 const EMPTY_COUNT = 12
 
 export default function GallerySection() {
@@ -63,37 +53,36 @@ export default function GallerySection() {
     <section
       id="trabajos"
       className="py-24 md:py-36 px-6"
-      style={{ backgroundColor: '#111111' }}
+      style={{ backgroundColor: '#161310' }}
     >
       <div className="max-w-6xl mx-auto">
-        {/* Section header */}
+        {/* Header */}
         <motion.div
           initial={shouldReduceMotion ? false : { opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.2 }}
           transition={{ duration: 0.7, ease }}
-          className="mb-14"
+          className="mb-14 text-center"
         >
-          <p className="text-xs font-medium uppercase tracking-[0.2em] mb-4" style={{ color: '#C9A96E' }}>
-            Galería
+          <p className="text-xs font-medium uppercase tracking-[0.25em] mb-4" style={{ color: '#C9A96E' }}>
+            Nuestros Trabajos
           </p>
           <h2
-            className="text-4xl md:text-5xl font-bold tracking-tight"
-            style={{ color: '#F5F5F5' }}
+            className="text-3xl md:text-5xl font-bold tracking-tight"
+            style={{ color: '#F2EDE7' }}
           >
-            Estilo que habla por ti
+            Estilo que habla por ti.
           </h2>
         </motion.div>
 
         {/* Grid */}
         {loading ? (
-          /* Loading skeleton */
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {Array.from({ length: EMPTY_COUNT }).map((_, i) => (
               <div
                 key={i}
                 className="aspect-[4/3] rounded-xl animate-pulse"
-                style={{ backgroundColor: '#1A1A1A' }}
+                style={{ backgroundColor: '#1A1713' }}
               />
             ))}
           </div>
@@ -102,16 +91,15 @@ export default function GallerySection() {
             {Array.from({ length: itemCount }).map((_, i) => {
               const span = SPANS[i % SPANS.length]
               const img = hasImages ? images[i] : null
-
               return (
                 <motion.div
                   key={img?.id ?? `placeholder-${i}`}
                   initial={shouldReduceMotion ? false : { opacity: 0, y: 16 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, amount: 0.1 }}
-                  transition={{ duration: 0.6, delay: (i % 4) * 0.05, ease }}
+                  transition={{ duration: 0.5, delay: (i % 4) * 0.05, ease }}
                   className={`overflow-hidden rounded-xl ${span === 2 ? 'md:col-span-2' : 'col-span-1'}`}
-                  style={{ border: '1px solid rgba(201,169,110,0.08)' }}
+                  style={{ border: '1px solid rgba(201,169,110,0.07)' }}
                 >
                   <div className="aspect-[4/3] overflow-hidden group cursor-pointer">
                     {img ? (
@@ -131,12 +119,28 @@ export default function GallerySection() {
           </div>
         )}
 
-        {/* Admin hint when empty */}
-        {!loading && !hasImages && (
-          <p className="mt-8 text-center text-xs" style={{ color: '#333' }}>
-            Añade fotos desde el panel de administración → Galería
-          </p>
-        )}
+        {/* CTA */}
+        <motion.div
+          initial={shouldReduceMotion ? false : { opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true, amount: 0.1 }}
+          transition={{ duration: 0.5, delay: 0.2, ease }}
+          className="mt-10 text-center"
+        >
+          <a
+            href="#reservar"
+            onClick={(e) => {
+              e.preventDefault()
+              document.querySelector('#reservar')?.scrollIntoView({ behavior: 'smooth' })
+            }}
+            className="inline-flex items-center gap-2 text-sm font-medium"
+            style={{ color: '#C9A96E' }}
+            onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.7')}
+            onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
+          >
+            Ver más trabajos →
+          </a>
+        </motion.div>
       </div>
     </section>
   )

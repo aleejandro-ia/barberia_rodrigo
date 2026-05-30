@@ -9,7 +9,7 @@ import WhatsAppButton from '@/components/landing/WhatsAppButton'
 
 export default function Home() {
   return (
-    <main className="overflow-x-hidden bg-[#0A0A0A]">
+    <main className="overflow-x-hidden" style={{ backgroundColor: '#0E0B08' }}>
       <NavBar />
       <HeroSection />
       <AboutSection />
