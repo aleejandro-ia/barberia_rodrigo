@@ -2,10 +2,14 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react'
-import { List, X } from '@phosphor-icons/react'
+import { List, X, CalendarBlank, SignOut, User } from '@phosphor-icons/react'
+import { createClient } from '@/lib/supabase/client'
+import { AuthModal } from '@/components/auth/AuthModal'
+import MyAppointmentModal from './MyAppointmentModal'
+import type { User as SupabaseUser } from '@supabase/supabase-js'
 
 const navLinks = [
-  { label: 'Sobre mi', href: '#sobre-mi' },
+  { label: 'Sobre mí', href: '#sobre-mi' },
   { label: 'Trabajos', href: '#trabajos' },
   { label: 'Reservar', href: '#reservar' },
 ]
@@ -13,6 +17,9 @@ const navLinks = [
 export default function NavBar() {
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [user, setUser] = useState<SupabaseUser | null>(null)
+  const [authModalOpen, setAuthModalOpen] = useState(false)
+  const [appointmentModalOpen, setAppointmentModalOpen] = useState(false)
   const shouldReduceMotion = useReducedMotion()
 
   useEffect(() => {
@@ -21,11 +28,33 @@ export default function NavBar() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data: { user } }) => setUser(user))
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+      setUser(session?.user ?? null)
+    })
+    return () => subscription.unsubscribe()
+  }, [])
+
   function handleNavClick(href: string) {
     setMenuOpen(false)
     const target = document.querySelector(href)
-    if (target) {
-      target.scrollIntoView({ behavior: 'smooth' })
+    if (target) target.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  async function handleSignOut() {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    setUser(null)
+    setAppointmentModalOpen(false)
+  }
+
+  function handleMisCitasClick() {
+    if (!user) {
+      setAuthModalOpen(true)
+    } else {
+      setAppointmentModalOpen(true)
     }
   }
 
@@ -36,14 +65,12 @@ export default function NavBar() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
         className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-5xl"
-        aria-label="Navegacion principal"
+        aria-label="Navegación principal"
       >
         <div
           className="flex items-center justify-between px-5 py-3 rounded-full transition-all duration-300"
           style={{
-            background: scrolled
-              ? 'rgba(10,10,10,0.85)'
-              : 'rgba(10,10,10,0.4)',
+            background: scrolled ? 'rgba(10,10,10,0.85)' : 'rgba(10,10,10,0.4)',
             backdropFilter: scrolled ? 'blur(20px)' : 'blur(8px)',
             WebkitBackdropFilter: scrolled ? 'blur(20px)' : 'blur(8px)',
             border: '1px solid rgba(201,169,110,0.12)',
@@ -55,7 +82,6 @@ export default function NavBar() {
             onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
             className="text-2xl font-bold tracking-tight select-none"
             style={{ color: '#C9A96E' }}
-            aria-label="Rodrigo Barberia - Inicio"
           >
             R.
           </a>
@@ -75,6 +101,51 @@ export default function NavBar() {
                 {link.label}
               </a>
             ))}
+
+            {/* Mis citas */}
+            <button
+              onClick={handleMisCitasClick}
+              className="ml-1 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-medium transition-all duration-200"
+              style={{
+                color: '#C9A96E',
+                border: '1px solid rgba(201,169,110,0.25)',
+                backgroundColor: 'rgba(201,169,110,0.06)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(201,169,110,0.12)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(201,169,110,0.06)'
+              }}
+            >
+              <CalendarBlank size={14} weight="duotone" />
+              Mis citas
+            </button>
+
+            {user ? (
+              <button
+                onClick={handleSignOut}
+                className="ml-1 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-medium transition-colors duration-200"
+                style={{ color: '#555' }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = '#F5F5F5')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = '#555')}
+                title="Cerrar sesión"
+              >
+                <SignOut size={14} />
+              </button>
+            ) : (
+              <button
+                onClick={() => setAuthModalOpen(true)}
+                className="ml-1 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-medium transition-colors duration-200"
+                style={{ color: '#555' }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = '#F5F5F5')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = '#555')}
+                title="Iniciar sesión"
+              >
+                <User size={14} />
+              </button>
+            )}
+
             <a
               href="#reservar"
               onClick={(e) => { e.preventDefault(); handleNavClick('#reservar') }}
@@ -90,14 +161,14 @@ export default function NavBar() {
             className="md:hidden p-1.5 rounded-full transition-colors"
             style={{ color: '#F5F5F5' }}
             onClick={() => setMenuOpen(!menuOpen)}
-            aria-label={menuOpen ? 'Cerrar menu' : 'Abrir menu'}
+            aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'}
           >
             {menuOpen ? <X size={22} weight="bold" /> : <List size={22} weight="bold" />}
           </button>
         </div>
       </motion.nav>
 
-      {/* Mobile full-screen overlay */}
+      {/* Mobile overlay */}
       <AnimatePresence>
         {menuOpen && (
           <motion.div
@@ -123,13 +194,24 @@ export default function NavBar() {
                   {link.label}
                 </motion.a>
               ))}
+              <motion.button
+                initial={shouldReduceMotion ? false : { opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: navLinks.length * 0.07, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                onClick={() => { setMenuOpen(false); handleMisCitasClick() }}
+                className="flex items-center gap-2 text-xl font-medium"
+                style={{ color: '#C9A96E' }}
+              >
+                <CalendarBlank size={20} weight="duotone" />
+                Mis citas
+              </motion.button>
               <motion.a
                 href="#reservar"
                 initial={shouldReduceMotion ? false : { opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: navLinks.length * 0.07, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                transition={{ delay: (navLinks.length + 1) * 0.07, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                 onClick={(e) => { e.preventDefault(); handleNavClick('#reservar') }}
-                className="mt-4 px-8 py-3 rounded-full text-base font-semibold"
+                className="mt-2 px-8 py-3 rounded-full text-base font-semibold"
                 style={{ backgroundColor: '#C9A96E', color: '#0A0A0A' }}
               >
                 Reservar cita
@@ -138,6 +220,18 @@ export default function NavBar() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+      />
+
+      <MyAppointmentModal
+        isOpen={appointmentModalOpen}
+        onClose={() => setAppointmentModalOpen(false)}
+        onLoginNeeded={() => { setAppointmentModalOpen(false); setAuthModalOpen(true) }}
+        userId={user?.id ?? null}
+      />
     </>
   )
 }

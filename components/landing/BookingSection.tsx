@@ -8,10 +8,11 @@ import BookingCalendar from './BookingCalendar'
 import TimeSlotPicker from './TimeSlotPicker'
 import BookingForm from './BookingForm'
 import BookingConfirmation from './BookingConfirmation'
+import BookingReview from './BookingReview'
 import type { Appointment } from '@/types'
 import type { User } from '@supabase/supabase-js'
 
-type Step = 'calendar' | 'slots' | 'form' | 'confirmation'
+type Step = 'calendar' | 'slots' | 'form' | 'review' | 'confirmation'
 
 interface Slot {
   id: string
@@ -32,6 +33,7 @@ export default function BookingSection() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null)
   const [confirmedAppointment, setConfirmedAppointment] = useState<Appointment | null>(null)
+  const [formData, setFormData] = useState<{ name: string; phone: string; notes: string } | null>(null)
 
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(null)
@@ -94,6 +96,11 @@ export default function BookingSection() {
     setStep('form')
   }
 
+  function handleFormReady(data: { name: string; phone: string; notes: string }) {
+    setFormData(data)
+    setStep('review')
+  }
+
   function handleBookingConfirmed(appointment: Appointment) {
     setConfirmedAppointment(appointment)
     setStep('confirmation')
@@ -104,16 +111,10 @@ export default function BookingSection() {
     setSelectedDate(null)
     setSelectedSlot(null)
     setConfirmedAppointment(null)
+    setFormData(null)
   }
 
-  const stepLabels: Record<Step, string> = {
-    calendar: 'Elige un dia',
-    slots: 'Elige un horario',
-    form: 'Tus datos',
-    confirmation: 'Confirmacion',
-  }
-
-  const STEPS: Step[] = ['calendar', 'slots', 'form', 'confirmation']
+  const STEPS: Step[] = ['calendar', 'slots', 'form', 'review', 'confirmation']
 
   return (
     <section
@@ -263,9 +264,19 @@ export default function BookingSection() {
                 slot={selectedSlot}
                 initialName={profile?.full_name || ''}
                 initialPhone={profile?.phone || ''}
-                onSuccess={handleBookingConfirmed}
+                onReview={handleFormReady}
               />
             </div>
+          )}
+
+          {step === 'review' && selectedDate && selectedSlot && formData && (
+            <BookingReview
+              date={selectedDate}
+              slot={selectedSlot}
+              formData={formData}
+              onBack={() => setStep('form')}
+              onConfirmed={handleBookingConfirmed}
+            />
           )}
 
           {step === 'confirmation' && confirmedAppointment && (

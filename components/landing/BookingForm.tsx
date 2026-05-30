@@ -1,8 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { bookAppointment } from '@/actions/appointments'
-import type { Appointment } from '@/types'
 
 interface Slot {
   id: string
@@ -15,7 +13,7 @@ interface BookingFormProps {
   slot: Slot
   initialName?: string
   initialPhone?: string
-  onSuccess: (appointment: Appointment) => void
+  onReview: (data: { name: string; phone: string; notes: string }) => void
 }
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -28,42 +26,29 @@ const ERROR_MESSAGES: Record<string, string> = {
 }
 
 export default function BookingForm({
-  date,
-  slot,
+  date: _date,
+  slot: _slot,
   initialName = '',
   initialPhone = '',
-  onSuccess,
+  onReview,
 }: BookingFormProps) {
   const [name, setName] = useState(initialName)
   const [phone, setPhone] = useState(initialPhone)
   const [notes, setNotes] = useState('')
-  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  async function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
-    setLoading(true)
-
-    const result = await bookAppointment({
-      slot_date: date,
-      slot_start_time: slot.start_time,
-      slot_end_time: slot.end_time,
-      client_name: name.trim(),
-      client_phone: phone.trim(),
-      notes: notes.trim() || undefined,
-    })
-
-    setLoading(false)
-
-    if ('error' in result && result.error) {
-      setError(ERROR_MESSAGES[result.error] ?? ERROR_MESSAGES.DEFAULT)
+    if (!name.trim() || name.trim().length < 2) {
+      setError('El nombre debe tener al menos 2 caracteres.')
       return
     }
-
-    if ('appointment' in result && result.appointment) {
-      onSuccess(result.appointment as Appointment)
+    if (!phone.trim() || phone.trim().length < 6) {
+      setError('Introduce un teléfono válido.')
+      return
     }
+    onReview({ name: name.trim(), phone: phone.trim(), notes: notes.trim() })
   }
 
   const inputStyle = {
@@ -152,11 +137,10 @@ export default function BookingForm({
 
       <button
         type="submit"
-        disabled={loading}
-        className="mt-2 py-3.5 rounded-full text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-60"
+        className="mt-2 py-3.5 rounded-full text-sm font-semibold transition-opacity hover:opacity-90"
         style={{ backgroundColor: '#C9A96E', color: '#0A0A0A' }}
       >
-        {loading ? 'Reservando...' : 'Confirmar reserva'}
+        Revisar reserva →
       </button>
     </form>
   )
