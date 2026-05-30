@@ -20,6 +20,8 @@ interface BookingCalendarProps {
 }
 
 const DAY_LABELS = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
+// Show at most 3 months ahead — no point showing months with no slots
+const MAX_MONTHS_AHEAD = 3
 
 export default function BookingCalendar({
   selectedDate,
@@ -54,8 +56,14 @@ export default function BookingCalendar({
   const firstDayOfWeek = (getDay(monthStart) + 6) % 7
   const paddingDays = Array.from({ length: firstDayOfWeek })
 
+  const maxMonth = new Date(
+    today.getFullYear(),
+    today.getMonth() + MAX_MONTHS_AHEAD,
+    1,
+  )
   const canGoPrev =
-    currentMonth > new Date(today.getFullYear(), today.getMonth(), 1)
+    currentMonth.getTime() > new Date(today.getFullYear(), today.getMonth(), 1).getTime()
+  const canGoNext = currentMonth.getTime() < maxMonth.getTime()
 
   return (
     <div className="w-full select-none">
@@ -64,18 +72,16 @@ export default function BookingCalendar({
         <button
           onClick={() =>
             canGoPrev &&
-            setCurrentMonth(
-              (m) => new Date(m.getFullYear(), m.getMonth() - 1, 1),
-            )
+            setCurrentMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1))
           }
           disabled={!canGoPrev}
-          className="w-8 h-8 flex items-center justify-center rounded-full transition-all duration-150 disabled:opacity-20"
+          className="w-8 h-8 flex items-center justify-center rounded-full transition-all duration-150"
           style={{
-            color: canGoPrev ? '#C9A96E' : '#444',
-            backgroundColor: canGoPrev
-              ? 'rgba(201,169,110,0.08)'
-              : 'transparent',
-            border: '1px solid rgba(201,169,110,0.15)',
+            color: canGoPrev ? '#C9A96E' : '#2A2520',
+            backgroundColor: canGoPrev ? 'rgba(201,169,110,0.08)' : 'transparent',
+            border: `1px solid ${canGoPrev ? 'rgba(201,169,110,0.15)' : 'rgba(201,169,110,0.06)'}`,
+            cursor: canGoPrev ? 'pointer' : 'not-allowed',
+            opacity: canGoPrev ? 1 : 0.35,
           }}
           aria-label="Mes anterior"
         >
@@ -84,27 +90,29 @@ export default function BookingCalendar({
 
         <div className="text-center">
           <p
-            className="text-sm font-semibold capitalize tracking-wide"
+            className="text-base font-semibold capitalize tracking-wide"
             style={{ color: '#F5F5F5' }}
           >
             {format(currentMonth, 'MMMM', { locale: es })}
           </p>
-          <p className="text-xs mt-0.5" style={{ color: '#555' }}>
+          <p className="text-sm mt-0.5" style={{ color: '#555' }}>
             {format(currentMonth, 'yyyy')}
           </p>
         </div>
 
         <button
           onClick={() =>
-            setCurrentMonth(
-              (m) => new Date(m.getFullYear(), m.getMonth() + 1, 1),
-            )
+            canGoNext &&
+            setCurrentMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1))
           }
+          disabled={!canGoNext}
           className="w-8 h-8 flex items-center justify-center rounded-full transition-all duration-150"
           style={{
-            color: '#C9A96E',
-            backgroundColor: 'rgba(201,169,110,0.08)',
-            border: '1px solid rgba(201,169,110,0.15)',
+            color: canGoNext ? '#C9A96E' : '#2A2520',
+            backgroundColor: canGoNext ? 'rgba(201,169,110,0.08)' : 'transparent',
+            border: `1px solid ${canGoNext ? 'rgba(201,169,110,0.15)' : 'rgba(201,169,110,0.06)'}`,
+            cursor: canGoNext ? 'pointer' : 'not-allowed',
+            opacity: canGoNext ? 1 : 0.35,
           }}
           aria-label="Mes siguiente"
         >
@@ -117,7 +125,7 @@ export default function BookingCalendar({
         {DAY_LABELS.map((d) => (
           <div
             key={d}
-            className="text-center text-xs font-medium py-1"
+            className="text-center text-sm font-medium py-1"
             style={{ color: '#444' }}
           >
             {d}
@@ -159,7 +167,7 @@ export default function BookingCalendar({
               key={dateStr}
               onClick={() => isClickable && onSelectDate(dateStr)}
               disabled={!isClickable}
-              className="relative flex items-center justify-center text-sm font-medium transition-all duration-150"
+              className="relative flex items-center justify-center text-base font-medium transition-all duration-150"
               style={{
                 aspectRatio: '1',
                 borderRadius: '10px',
@@ -182,9 +190,7 @@ export default function BookingCalendar({
                     : isSelected
                       ? '1px solid #C9A96E'
                       : '1px solid transparent',
-                boxShadow: isSelected
-                  ? '0 0 12px rgba(201,169,110,0.25)'
-                  : 'none',
+                boxShadow: isSelected ? '0 0 12px rgba(201,169,110,0.25)' : 'none',
               }}
               aria-label={`${dateStr}${isAvailable ? ' – disponible' : ''}`}
               aria-pressed={isSelected}
@@ -205,14 +211,18 @@ export default function BookingCalendar({
       <div className="flex items-center gap-5 mt-5 justify-center">
         <div className="flex items-center gap-1.5">
           <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#C9A96E' }} />
-          <span className="text-xs" style={{ color: '#555' }}>Disponible</span>
+          <span className="text-sm" style={{ color: '#555' }}>
+            Disponible
+          </span>
         </div>
         <div className="flex items-center gap-1.5">
           <div
             className="w-2 h-2 rounded-full"
             style={{ backgroundColor: '#C9A96E', boxShadow: '0 0 6px rgba(201,169,110,0.5)' }}
           />
-          <span className="text-xs" style={{ color: '#555' }}>Seleccionado</span>
+          <span className="text-sm" style={{ color: '#555' }}>
+            Seleccionado
+          </span>
         </div>
       </div>
     </div>

@@ -58,8 +58,8 @@ export default function BeforeAfterSection() {
           transition={{ duration: 0.7, ease }}
           className="mb-14 text-center"
         >
-          <p className="text-xs font-medium uppercase tracking-[0.25em] mb-4" style={{ color: '#C9A96E' }}>Transformaciones</p>
-          <h2 className="text-3xl md:text-5xl font-bold tracking-tight" style={{ color: '#F2EDE7' }}>
+          <p className="text-sm font-medium uppercase tracking-[0.25em] mb-4" style={{ color: '#C9A96E' }}>Transformaciones</p>
+          <h2 className="text-4xl md:text-5xl font-bold tracking-tight" style={{ color: '#F2EDE7' }}>
             Antes &amp; Después
           </h2>
         </motion.div>
@@ -111,7 +111,7 @@ export default function BeforeAfterSection() {
           <a
             href="#reservar"
             onClick={(e) => { e.preventDefault(); document.querySelector('#reservar')?.scrollIntoView({ behavior: 'smooth' }) }}
-            className="inline-flex items-center gap-2 text-sm font-medium"
+            className="inline-flex items-center gap-2 text-base font-medium"
             style={{ color: '#C9A96E' }}
           >
             Más transformaciones →

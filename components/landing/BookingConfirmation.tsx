@@ -48,7 +48,7 @@ export default function BookingConfirmation({
           {startTime.slice(0, 5)}
         </p>
         <p className="text-sm mt-1" style={{ color: '#888888' }}>
-          con Rodrigo Fernandez
+          con Rodrigo Bargueño — BG Barber
         </p>
       </div>
 

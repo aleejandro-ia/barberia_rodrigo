@@ -18,3 +18,37 @@
 [2026-05-29] design-taste-frontend + high-end-visual-design skills for public landing — Reason: User wants "premium/luxury feel". These skills specifically prevent LLM design slop and enforce agency-tier output quality.
 
 [2026-05-29] Admin panel uses shadcn/ui (functional, not taste-skill aesthetic) — Reason: Admin panel is a utility tool for Rodrigo only. Premium aesthetic adds complexity without value here. shadcn/ui gives solid, accessible, professional admin UI fast.
+
+[2026-05-30] Warm dark palette para admin también (#0E0B08, #161310, #C9A96E) — Reason: Usuario pidió admin más premium. Mantener coherencia visual con el landing.
+
+[2026-05-30] Plus Jakarta Sans reemplaza Outfit como fuente principal — Reason: Outfit weight 300 se pixelaba en fondos oscuros. Plus Jakarta Sans tiene mejor hinting, optical corrections built-in, rendering limpio a todos los tamaños.
+
+[2026-05-30] font-size base HTML = 17px (no 16px Tailwind default) — Reason: Todo el texto se veía pequeño. 17px da más presencia sin romper layouts. Escala todos los rem automáticamente.
+
+[2026-05-30] site_settings tabla con keys fijas vs columnas dinámicas — Reason: Solo 2 imágenes configurables (hero + portrait). Keys fijas + upsert es más simple que schema dinámico. Fácil de extender añadiendo más keys.
+
+[2026-05-30] Google OAuth ONLY (eliminado phone OTP) — Reason: Usuario confirmó que solo quiere Google OAuth. Phone OTP con Twilio añade coste y complejidad innecesaria para este caso.
+
+[2026-05-30] GitHub auto-deploy via Vercel Git Integration (no Vercel CLI) — Reason: Vercel CLI token expirado y no instalado localmente. Git integration es más limpio: push a main = deploy automático sin CLI.
+
+[2026-05-30] Admin button en NavBar vía fetch /api/auth/is-admin — Reason: Check server-side del rol. No expone lógica de admin al cliente. NavBar es 'use client' así que no puede usar server actions directamente.
+
+[2026-05-30] Gallery: 3D circular carousel en lugar de grid estático — Reason: Usuario quería carrusel tipo circular 3D. Grid era demasiado estático para sección de trabajos premium.
+
+[2026-05-30] Carousel usa useRef para rotación, no useState — Reason: useState re-renderiza React tree a 60fps. useRef + direct DOM style = 0 re-renders, performante en mobile.
+
+[2026-05-30] window.addEventListener scroll eliminado del carousel — Reason: Activaba en toda la página, no solo en la sección galería. Jank y UX confusa. Reemplazado por auto-rotate + drag.
+
+[2026-05-30] Responsive carousel: 3D en md (768px+), flat scroll-snap en mobile — Reason: 3D con perspective en mobile es difícil de interactuar. Flat scroll-snap es nativo, rápido y familiar en móvil.
+
+[2026-05-30] Gallery carousel: infinite marquee belt (no slide-by-slide, no 3D circular) — Reason: Usuario quería movimiento continuo tipo cinta transportadora. Marquee con triple array + seamless reset más limpio que 3D. Sin CSS preserve-3d issues.
+
+[2026-05-30] sessionStorage para pending slot durante OAuth redirect — Reason: React state no sobrevive full-page redirect de Google OAuth. sessionStorage persiste entre redirects. Clave 'bgbarber_pending_booking'.
+
+[2026-05-30] BookingSection step machine ('date'|'slot'|'form'|'confirmed'|'blocked') — Reason: Renderizado condicional complejo antes era difícil de mantener. Step machine hace el flujo explícito y testeable. Mobile usa step-by-step, desktop usa 2-col.
+
+[2026-05-30] dates API: query start_time para filtrar fechas completamente reservadas — Reason: Bug original devolvía todas las fechas con availability_slots aunque todos estuvieran ya reservados. Ahora cruza con appointments.confirmed y solo devuelve fechas con al menos 1 slot libre.
+
+[2026-05-30] TimeSlotPicker refreshKey prop — Reason: Cuando SLOT_TAKEN, el slot tomado seguía visible. Parent incrementa refreshKey → TimeSlotPicker re-fetch → lista actualizada.
+
+[2026-05-30] BookingCalendar maxMonth = today + 3 meses — Reason: Sin límite, usuario podía navegar al infinito. 3 meses es suficiente horizonte de planificación para una barbería.

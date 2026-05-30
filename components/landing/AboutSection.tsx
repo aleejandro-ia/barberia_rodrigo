@@ -53,7 +53,7 @@ function OrnateCircleFrame({ children }: { children: React.ReactNode }) {
 
 function PortraitContent({ url }: { url: string | null }) {
   if (url) {
-    return <img src={url} alt="Rodrigo Fernández" className="w-full h-full object-cover" />
+    return <img src={url} alt="Rodrigo Bargueño" className="w-full h-full object-cover" />
   }
   return (
     <div className="w-full h-full flex flex-col items-center justify-center gap-3">
@@ -111,18 +111,18 @@ export default function AboutSection() {
           transition={{ duration: 1, delay: 0.1, ease }}
           className="flex flex-col"
         >
-          <p className="text-xs font-medium uppercase tracking-[0.25em] mb-2" style={{ color: '#C9A96E' }}>Conoce a</p>
-          <h2 className="font-bold tracking-tight leading-tight" style={{ fontSize: 'clamp(2.2rem, 4vw, 3.5rem)', color: '#F2EDE7' }}>
-            Rodrigo Fernández
+          <p className="text-sm font-medium uppercase tracking-[0.25em] mb-2" style={{ color: '#C9A96E' }}>Conoce a</p>
+          <h2 className="font-bold tracking-tight leading-tight" style={{ fontSize: 'clamp(2.5rem, 4vw, 4rem)', color: '#F2EDE7' }}>
+            Rodrigo Bargueño
           </h2>
-          <p className="mt-1" style={{ fontFamily: 'var(--font-dancing)', fontSize: '1.5rem', color: '#C9A96E', lineHeight: 1.4 }}>
+          <p className="mt-1" style={{ fontFamily: 'var(--font-dancing)', fontSize: '1.75rem', color: '#C9A96E', lineHeight: 1.4 }}>
             Maestro Barbero
           </p>
-          <p className="mt-7 text-base leading-relaxed" style={{ color: '#7A7268', maxWidth: '42ch' }}>
-            Más que un barbero, es un maestro de estilo. Cada corte es el resultado de años de dedicación, precisión y pasión por el oficio. Mi misión es que cada cliente salga sintiéndose su mejor versión.
+          <p className="mt-7 text-lg leading-relaxed" style={{ color: '#7A7268', maxWidth: '42ch' }}>
+            Barbero en BG Barber. Sin grandes discursos. Cada cliente tiene su estilo y de eso se trata. Trabajo con cita previa para poder dedicarle el tiempo que merece a cada uno.
           </p>
-          <p className="mt-5" style={{ fontFamily: 'var(--font-dancing)', fontSize: '1.75rem', color: '#C9A96E', letterSpacing: '0.02em' }}>
-            R. Fernández
+          <p className="mt-5" style={{ fontFamily: 'var(--font-dancing)', fontSize: '2rem', color: '#C9A96E', letterSpacing: '0.02em' }}>
+            R. Bargueño
           </p>
 
           <div className="flex items-center gap-6 mt-8 flex-wrap">
@@ -139,7 +139,7 @@ export default function AboutSection() {
                   style={{ backgroundColor: 'rgba(201,169,110,0.1)', border: '1px solid rgba(201,169,110,0.25)' }}>
                   <v.icon size={14} weight="duotone" style={{ color: '#C9A96E' }} />
                 </div>
-                <span className="text-sm font-medium" style={{ color: '#B0A898' }}>{v.label}</span>
+                <span className="text-base font-medium" style={{ color: '#B0A898' }}>{v.label}</span>
               </motion.div>
             ))}
           </div>
@@ -147,7 +147,7 @@ export default function AboutSection() {
           <a
             href="#reservar"
             onClick={(e) => { e.preventDefault(); document.querySelector('#reservar')?.scrollIntoView({ behavior: 'smooth' }) }}
-            className="mt-9 inline-flex w-fit items-center gap-2 px-7 py-3.5 rounded-full text-sm font-semibold transition-opacity hover:opacity-90 active:scale-[0.98]"
+            className="mt-9 inline-flex w-fit items-center gap-2 px-7 py-3.5 rounded-full text-base font-semibold transition-opacity hover:opacity-90 active:scale-[0.98]"
             style={{ backgroundColor: '#C9A96E', color: '#0E0B08' }}
           >
             Reservar ahora →

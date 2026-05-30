@@ -75,19 +75,19 @@ const SERVICES = [
   {
     Icon: CorteClasico,
     name: 'Corte Clásico',
-    description: 'El corte de siempre, ejecutado con técnica impecable y resultado atemporal.',
+    description: 'El clásico de siempre. Lo que funciona, funciona.',
     price: '7',
   },
   {
     Icon: CorteModerno,
     name: 'Corte',
-    description: 'Corte moderno adaptado a tu estilo. Fade, textura o capas según necesites.',
+    description: 'Adaptado a lo que llevas o a lo que quieres empezar a llevar.',
     price: '9',
   },
   {
     Icon: CorteBarba,
     name: 'Corte con Barba',
-    description: 'Corte completo más arreglo y perfilado de barba. El combo perfecto.',
+    description: 'El corte y el arreglo de barba. Todo en una visita.',
     price: '10',
   },
 ]
@@ -112,14 +112,14 @@ export default function ServicesSection() {
           transition={{ duration: 0.7, ease }}
           className="mb-14 text-center"
         >
-          <p className="text-xs font-medium uppercase tracking-[0.25em] mb-4" style={{ color: '#C9A96E' }}>
-            Servicios Premium
+          <p className="text-sm font-medium uppercase tracking-[0.25em] mb-4" style={{ color: '#C9A96E' }}>
+            Servicios
           </p>
           <h2
-            className="text-3xl md:text-5xl font-bold tracking-tight"
+            className="text-4xl md:text-5xl font-bold tracking-tight"
             style={{ color: '#F2EDE7' }}
           >
-            Hechos para hombres<br className="hidden md:block" /> que valoran su estilo.
+            Tres opciones.<br className="hidden md:block" /> Sin complicaciones.
           </h2>
         </motion.div>
 
@@ -160,17 +160,17 @@ export default function ServicesSection() {
 
               {/* Text */}
               <div className="flex flex-col gap-2">
-                <h3 className="text-base font-bold tracking-wide" style={{ color: '#F2EDE7' }}>
+                <h3 className="text-lg font-bold tracking-wide" style={{ color: '#F2EDE7' }}>
                   {service.name}
                 </h3>
-                <p className="text-sm leading-relaxed" style={{ color: '#7A7268' }}>
+                <p className="text-base leading-relaxed" style={{ color: '#7A7268' }}>
                   {service.description}
                 </p>
               </div>
 
               {/* Price */}
               <div className="mt-auto pt-4 w-full" style={{ borderTop: '1px solid rgba(201,169,110,0.08)' }}>
-                <p className="text-xs uppercase tracking-widest mb-1" style={{ color: '#4A4540' }}>
+                <p className="text-sm uppercase tracking-widest mb-1" style={{ color: '#4A4540' }}>
                   Desde
                 </p>
                 <p className="text-3xl font-bold" style={{ color: '#C9A96E' }}>
@@ -204,7 +204,7 @@ export default function ServicesSection() {
               e.preventDefault()
               document.querySelector('#reservar')?.scrollIntoView({ behavior: 'smooth' })
             }}
-            className="inline-flex items-center gap-2 text-sm font-medium transition-colors"
+            className="inline-flex items-center gap-2 text-base font-medium transition-colors"
             style={{ color: '#C9A96E' }}
             onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.75')}
             onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}

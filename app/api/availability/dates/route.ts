@@ -9,24 +9,26 @@ export async function GET(request: NextRequest) {
 
   const supabase = await createClient()
   const startDate = `${month}-01`
-  // Compute first day of next month
   const [year, mon] = month.split('-').map(Number)
-  const nextMonth = mon === 12 ? `${year + 1}-01-01` : `${year}-${String(mon + 1).padStart(2, '0')}-01`
+  const nextMonth =
+    mon === 12
+      ? `${year + 1}-01-01`
+      : `${year}-${String(mon + 1).padStart(2, '0')}-01`
   const today = new Date().toISOString().split('T')[0]
 
-  // Get all available slot dates in range (not past)
+  // Fetch available slots WITH start_time so we can check per-slot availability
   const { data: slots } = await supabase
     .from('availability_slots')
-    .select('date')
+    .select('date, start_time')
     .eq('is_available', true)
     .gte('date', startDate < today ? today : startDate)
     .lt('date', nextMonth)
 
   if (!slots || slots.length === 0) return NextResponse.json({ dates: [] })
 
-  // Get all confirmed booking times in that range to filter fully-booked dates
   const potentialDates = [...new Set(slots.map((s) => s.date))]
 
+  // Fetch confirmed bookings for those dates
   const { data: booked } = await supabase
     .from('appointments')
     .select('slot_date, slot_start_time')
@@ -39,17 +41,16 @@ export async function GET(request: NextRequest) {
     bookedMap[b.slot_date].add(b.slot_start_time)
   }
 
-  // Group slots by date
-  const slotsByDate: Record<string, string[]> = {}
-  for (const s of slots) {
-    if (!slotsByDate[s.date]) slotsByDate[s.date] = []
-    slotsByDate[s.date].push(s.date) // just counting presence
-  }
-
-  // Return dates that still have at least one un-booked slot
-  // We don't have start_time in this query — simplification: return all dates with available slots
-  // Full slot-level availability is checked in /api/availability/slots
-  const dates = potentialDates.sort()
+  // Only return dates that have at least one slot NOT yet booked
+  const dates = potentialDates
+    .filter((date) => {
+      const timesForDate = slots
+        .filter((s) => s.date === date)
+        .map((s) => s.start_time)
+      const bookedTimes = bookedMap[date] ?? new Set<string>()
+      return timesForDate.some((t) => !bookedTimes.has(t))
+    })
+    .sort()
 
   return NextResponse.json({ dates })
 }

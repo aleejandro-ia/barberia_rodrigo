@@ -50,7 +50,7 @@ export default function HeroSection() {
             className="flex items-center gap-3 mb-8"
           >
             <div className="h-px w-8" style={{ backgroundColor: '#C9A96E' }} />
-            <span className="text-xs font-medium uppercase tracking-[0.2em]" style={{ color: '#C9A96E' }}>Barbería Rodrigo</span>
+            <span className="text-sm font-medium uppercase tracking-[0.2em]" style={{ color: '#C9A96E' }}>BG Barber</span>
           </motion.div>
 
           <motion.h1
@@ -58,7 +58,7 @@ export default function HeroSection() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.9, delay: 0.1, ease }}
             className="font-bold leading-[1.05] tracking-tight"
-            style={{ fontSize: 'clamp(3rem, 7vw, 5.5rem)', color: '#F2EDE7' }}
+            style={{ fontSize: 'clamp(3.5rem, 7vw, 6.5rem)', color: '#F2EDE7' }}
           >
             El corte{' '}<span style={{ color: '#F2EDE7' }}>que</span>
             <br />
@@ -71,8 +71,8 @@ export default function HeroSection() {
             transition={{ duration: 0.8, delay: 0.24, ease }}
             className="mt-6 flex flex-col gap-1"
           >
-            <p className="text-base font-medium" style={{ color: '#B0A898' }}>Estilo, precisión y confianza.</p>
-            <p className="text-sm" style={{ color: '#7A7268' }}>No es solo un corte, es tu mejor versión.</p>
+            <p className="text-lg font-medium" style={{ color: '#B0A898' }}>El carisma se entiende como la calidad de influir en las personas.</p>
+            <p className="text-base" style={{ color: '#7A7268' }}>Solo cita previa.</p>
           </motion.div>
 
           <motion.div
@@ -84,7 +84,7 @@ export default function HeroSection() {
             <a
               href="#reservar"
               onClick={(e) => { e.preventDefault(); document.querySelector('#reservar')?.scrollIntoView({ behavior: 'smooth' }) }}
-              className="flex items-center gap-2 px-7 py-3.5 rounded-full text-sm font-semibold transition-all hover:opacity-90 active:scale-[0.98]"
+              className="flex items-center gap-2 px-7 py-3.5 rounded-full text-base font-semibold transition-all hover:opacity-90 active:scale-[0.98]"
               style={{ backgroundColor: '#C9A96E', color: '#0E0B08' }}
             >
               Reservar cita →
@@ -92,7 +92,7 @@ export default function HeroSection() {
             <a
               href="#trabajos"
               onClick={(e) => { e.preventDefault(); document.querySelector('#trabajos')?.scrollIntoView({ behavior: 'smooth' }) }}
-              className="flex items-center gap-2 px-7 py-3.5 rounded-full text-sm font-medium border transition-all"
+              className="flex items-center gap-2 px-7 py-3.5 rounded-full text-base font-medium border transition-all"
               style={{ color: '#F2EDE7', borderColor: 'rgba(201,169,110,0.25)', backgroundColor: 'rgba(201,169,110,0.04)' }}
               onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(201,169,110,0.6)')}
               onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(201,169,110,0.25)')}

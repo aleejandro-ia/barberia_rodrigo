@@ -109,7 +109,7 @@ export default function NavBar() {
                 key={link.href}
                 href={link.href}
                 onClick={(e) => { e.preventDefault(); handleNavClick(link.href) }}
-                className="px-4 py-1.5 rounded-full text-sm font-medium transition-colors duration-200"
+                className="px-4 py-1.5 rounded-full text-base font-medium transition-colors duration-200"
                 style={{ color: '#888' }}
                 onMouseEnter={(e) => (e.currentTarget.style.color = '#F2EDE7')}
                 onMouseLeave={(e) => (e.currentTarget.style.color = '#888')}
@@ -121,7 +121,7 @@ export default function NavBar() {
             {/* Mis citas */}
             <button
               onClick={handleMisCitasClick}
-              className="ml-1 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-medium transition-all duration-200"
+              className="ml-1 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-base font-medium transition-all duration-200"
               style={{ color: '#C9A96E', border: '1px solid rgba(201,169,110,0.25)', backgroundColor: 'rgba(201,169,110,0.06)' }}
               onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(201,169,110,0.12)')}
               onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'rgba(201,169,110,0.06)')}
@@ -134,7 +134,7 @@ export default function NavBar() {
             {isAdmin && (
               <Link
                 href="/admin"
-                className="ml-1 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold uppercase tracking-widest transition-all duration-200"
+                className="ml-1 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-semibold uppercase tracking-widest transition-all duration-200"
                 style={{ color: '#0E0B08', backgroundColor: '#C9A96E' }}
                 onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.85')}
                 onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
@@ -170,7 +170,7 @@ export default function NavBar() {
             <a
               href="#reservar"
               onClick={(e) => { e.preventDefault(); handleNavClick('#reservar') }}
-              className="ml-2 px-5 py-2 rounded-full text-sm font-semibold transition-opacity duration-200 hover:opacity-90"
+              className="ml-2 px-5 py-2 rounded-full text-base font-semibold transition-opacity duration-200 hover:opacity-90"
               style={{ backgroundColor: '#C9A96E', color: '#0E0B08' }}
             >
               Reservar cita

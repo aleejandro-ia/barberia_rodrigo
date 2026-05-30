@@ -1,12 +1,12 @@
 import type { Metadata } from 'next'
-import { Outfit, Dancing_Script } from 'next/font/google'
+import { Plus_Jakarta_Sans, Dancing_Script } from 'next/font/google'
 import './globals.css'
 
-/* Main font — Outfit: more premium, better x-height, cleaner at small sizes */
-const outfit = Outfit({
+/* Main font — Plus Jakarta Sans: humanist grotesque, crisp rendering, premium feel */
+const outfit = Plus_Jakarta_Sans({
   subsets: ['latin'],
   variable: '--font-outfit',
-  weight: ['300', '400', '500', '600', '700', '800'],
+  weight: ['400', '500', '600', '700', '800'],
 })
 
 /* Script font — kept for signature + Maestro Barbero */
@@ -17,8 +17,8 @@ const dancingScript = Dancing_Script({
 })
 
 export const metadata: Metadata = {
-  title: 'Rodrigo Barbería',
-  description: 'Reserva tu cita online con Rodrigo',
+  title: 'BG Barber — Rodrigo Bargueño',
+  description: 'Barbería BG Barber. Solo cita previa. Reserva online.',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
