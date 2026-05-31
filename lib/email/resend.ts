@@ -6,8 +6,13 @@
  */
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
-const FROM   = process.env.RESEND_FROM_EMAIL ?? 'onboarding@resend.dev'
+// Lazy-initialize — do NOT instantiate at module level (throws during build if key missing)
+function getResend() {
+  return new Resend(process.env.RESEND_API_KEY)
+}
+function getFrom() {
+  return process.env.RESEND_FROM_EMAIL ?? 'onboarding@resend.dev'
+}
 
 export interface AppointmentEmailData {
   to:        string
@@ -25,8 +30,8 @@ export async function sendConfirmationEmail(data: AppointmentEmailData) {
     console.warn('[email] RESEND_API_KEY not set — skipping confirmation email')
     return { skipped: true }
   }
-  return resend.emails.send({
-    from:    FROM,
+  return getResend().emails.send({
+    from:    getFrom(),
     to:      data.to,
     subject: `Cita confirmada en ${data.business}`,
     html:    buildConfirmationHtml(data),
@@ -38,8 +43,8 @@ export async function sendCancellationEmail(data: AppointmentEmailData) {
     console.warn('[email] RESEND_API_KEY not set — skipping cancellation email')
     return { skipped: true }
   }
-  return resend.emails.send({
-    from:    FROM,
+  return getResend().emails.send({
+    from:    getFrom(),
     to:      data.to,
     subject: `Cita cancelada en ${data.business}`,
     html:    buildCancellationHtml(data),
@@ -52,8 +57,8 @@ export async function sendReminderEmail(data: AppointmentEmailData, type: '24h' 
     return { skipped: true }
   }
   const hoursText = type === '24h' ? 'mañana' : 'en 2 horas'
-  return resend.emails.send({
-    from:    FROM,
+  return getResend().emails.send({
+    from:    getFrom(),
     to:      data.to,
     subject: `Recordatorio: tienes cita ${hoursText} en ${data.business}`,
     html:    buildReminderHtml(data, hoursText),
@@ -65,8 +70,8 @@ export async function sendRescheduleNotificationEmail(data: AppointmentEmailData
     console.warn('[email] RESEND_API_KEY not set — skipping reschedule email')
     return { skipped: true }
   }
-  return resend.emails.send({
-    from:    FROM,
+  return getResend().emails.send({
+    from:    getFrom(),
     to:      data.to,
     subject: `Tu cita ha sido reprogramada — ${data.business}`,
     html:    buildRescheduleHtml(data),
