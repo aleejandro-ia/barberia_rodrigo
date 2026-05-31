@@ -69,11 +69,6 @@ export default function NavBar() {
     setAppointmentModalOpen(false)
   }
 
-  function handleMisCitasClick() {
-    if (!user) setAuthModalOpen(true)
-    else setAppointmentModalOpen(true)
-  }
-
   return (
     <>
       <motion.nav
@@ -118,17 +113,19 @@ export default function NavBar() {
               </a>
             ))}
 
-            {/* Mis citas */}
-            <button
-              onClick={handleMisCitasClick}
-              className="ml-1 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-base font-medium transition-all duration-200"
-              style={{ color: '#C9A96E', border: '1px solid rgba(201,169,110,0.25)', backgroundColor: 'rgba(201,169,110,0.06)' }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(201,169,110,0.12)')}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'rgba(201,169,110,0.06)')}
-            >
-              <CalendarBlank size={14} weight="duotone" />
-              Mis citas
-            </button>
+            {/* Mis citas — only when logged in */}
+            {user && (
+              <Link
+                href="/mis-citas"
+                className="ml-1 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-base font-medium transition-all duration-200"
+                style={{ color: '#C9A96E', border: '1px solid rgba(201,169,110,0.25)', backgroundColor: 'rgba(201,169,110,0.06)' }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(201,169,110,0.12)')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'rgba(201,169,110,0.06)')}
+              >
+                <CalendarBlank size={14} weight="duotone" />
+                Mis citas
+              </Link>
+            )}
 
             {/* Admin button — only visible when logged in as admin */}
             {isAdmin && (
@@ -216,17 +213,23 @@ export default function NavBar() {
                 </motion.a>
               ))}
 
-              <motion.button
-                initial={shouldReduceMotion ? false : { opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: navLinks.length * 0.07, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                onClick={() => { setMenuOpen(false); handleMisCitasClick() }}
-                className="flex items-center gap-2 text-xl font-medium"
-                style={{ color: '#C9A96E' }}
-              >
-                <CalendarBlank size={20} weight="duotone" />
-                Mis citas
-              </motion.button>
+              {user && (
+                <motion.div
+                  initial={shouldReduceMotion ? false : { opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: navLinks.length * 0.07, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                >
+                  <Link
+                    href="/mis-citas"
+                    onClick={() => setMenuOpen(false)}
+                    className="flex items-center gap-2 text-xl font-medium"
+                    style={{ color: '#C9A96E' }}
+                  >
+                    <CalendarBlank size={20} weight="duotone" />
+                    Mis citas
+                  </Link>
+                </motion.div>
+              )}
 
               {isAdmin && (
                 <motion.div

@@ -7,13 +7,17 @@ import AgendaSlotRow from './AgendaSlotRow'
 import type { AgendaDay, AvailabilitySlot, Appointment } from '@/types'
 
 interface AgendaDayPanelProps {
-  day:                   AgendaDay | null
-  onBlock:               (slot: AvailabilitySlot) => void
-  onEditSlot:            (slot: AvailabilitySlot) => void
-  onCreateAppointment:   (slot: AvailabilitySlot) => void
-  onEditAppointment:     (appointment: Appointment) => void
-  onCancelAppointment:   (appointment: Appointment) => void
-  onOpenBulkCreator:     (date: string) => void
+  day:                      AgendaDay | null
+  onBlock:                  (slot: AvailabilitySlot) => void
+  onEditSlot:               (slot: AvailabilitySlot) => void
+  onCreateAppointment:      (slot: AvailabilitySlot) => void
+  onEditAppointment:        (appointment: Appointment) => void
+  onCancelAppointment:      (appointment: Appointment) => void
+  onOpenBulkCreator:        (date: string) => void
+  onRescheduleAppointment?: (appointment: Appointment) => void
+  onMarkNoShow?:             (appointment: Appointment) => void
+  onMarkCompleted?:          (appointment: Appointment) => void
+  onViewClientHistory?:      (appointment: Appointment) => void
 }
 
 export default function AgendaDayPanel({
@@ -24,6 +28,10 @@ export default function AgendaDayPanel({
   onEditAppointment,
   onCancelAppointment,
   onOpenBulkCreator,
+  onRescheduleAppointment,
+  onMarkNoShow,
+  onMarkCompleted,
+  onViewClientHistory,
 }: AgendaDayPanelProps) {
   if (!day) {
     return (
@@ -106,6 +114,10 @@ export default function AgendaDayPanel({
               onCreateAppointment={onCreateAppointment}
               onEditAppointment={onEditAppointment}
               onCancelAppointment={onCancelAppointment}
+              onRescheduleAppointment={onRescheduleAppointment}
+              onMarkNoShow={onMarkNoShow}
+              onMarkCompleted={onMarkCompleted}
+              onViewClientHistory={onViewClientHistory}
             />
           ))
         )}

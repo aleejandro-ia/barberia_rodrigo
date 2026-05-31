@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import AppointmentsList from '@/components/admin/AppointmentsList'
+import AdminMetrics from '@/components/admin/AdminMetrics'
 import type { Appointment } from '@/types'
 
 type Filter = 'today' | 'upcoming' | 'all'
@@ -51,6 +52,9 @@ export default function AdminPage() {
 
   return (
     <div>
+      {/* Metrics */}
+      <AdminMetrics />
+
       {/* Page header */}
       <div className="flex items-center justify-between mb-8">
         <div>

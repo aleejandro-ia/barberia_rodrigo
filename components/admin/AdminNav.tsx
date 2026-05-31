@@ -2,11 +2,12 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { CalendarBlank, CalendarDots, Images, Clock, SignOut, ArrowsLeftRight, Sliders, ArrowLeft } from '@phosphor-icons/react'
+import { CalendarBlank, CalendarDots, Images, Clock, SignOut, ArrowsLeftRight, Sliders, ArrowLeft, Scissors } from '@phosphor-icons/react'
 
 const navLinks = [
   { href: '/admin', label: 'Citas', Icon: CalendarBlank },
   { href: '/admin/agenda', label: 'Agenda', Icon: CalendarDots },
+  { href: '/admin/services', label: 'Servicios', Icon: Scissors },
   { href: '/admin/gallery', label: 'Galería', Icon: Images },
   { href: '/admin/before-after', label: 'Antes/Después', Icon: ArrowsLeftRight },
   { href: '/admin/schedule', label: 'Horarios', Icon: Clock },

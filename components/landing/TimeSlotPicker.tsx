@@ -15,7 +15,8 @@ interface TimeSlotPickerProps {
   date: string
   selectedSlot: Slot | null
   onSelectSlot: (slot: Slot) => void
-  refreshKey?: number   // increment from parent to force re-fetch (e.g. after SLOT_TAKEN)
+  refreshKey?: number        // increment from parent to force re-fetch (e.g. after SLOT_TAKEN)
+  minHoursAdvance?: number   // client-side filter: hide slots within this many hours (default: 2)
 }
 
 export default function TimeSlotPicker({
@@ -23,6 +24,7 @@ export default function TimeSlotPicker({
   selectedSlot,
   onSelectSlot,
   refreshKey = 0,
+  minHoursAdvance = 2,
 }: TimeSlotPickerProps) {
   const [slots, setSlots] = useState<Slot[]>([])
   const [loading, setLoading] = useState(false)
@@ -78,42 +80,55 @@ export default function TimeSlotPicker({
             Reintentar
           </button>
         </div>
-      ) : slots.length === 0 ? (
-        <p className="text-base py-6 text-center" style={{ color: '#555' }}>
-          No hay horarios disponibles para este día
-        </p>
       ) : (
-        <div className="flex flex-col gap-2">
-          {slots.map((slot) => {
-            const isSelected = selectedSlot?.id === slot.id
-            const start = slot.start_time.slice(0, 5)
-            const end   = slot.end_time.slice(0, 5)
-            return (
-              <button
-                key={slot.id}
-                onClick={() => onSelectSlot(slot)}
-                className="flex items-center justify-between px-4 py-3 rounded-xl text-base font-medium transition-all duration-150 active:scale-[0.98]"
-                style={{
-                  backgroundColor: isSelected ? '#C9A96E' : 'rgba(201,169,110,0.07)',
-                  color:           isSelected ? '#0A0A0A' : '#F5F5F5',
-                  border:          isSelected
-                    ? '1px solid #C9A96E'
-                    : '1px solid rgba(201,169,110,0.15)',
-                  boxShadow: isSelected ? '0 0 12px rgba(201,169,110,0.2)' : 'none',
-                }}
-                aria-pressed={isSelected}
-              >
-                <span>{start}</span>
-                <span
-                  className="text-sm"
-                  style={{ color: isSelected ? 'rgba(0,0,0,0.5)' : '#5A5450' }}
-                >
-                  hasta {end}
-                </span>
-              </button>
-            )
-          })}
-        </div>
+        (() => {
+          const now = Date.now()
+          const visibleSlots = slots.filter((slot) => {
+            if (!minHoursAdvance) return true
+            const slotDT = new Date(`${date}T${slot.start_time}`).getTime()
+            return (slotDT - now) / (1000 * 60 * 60) >= minHoursAdvance
+          })
+
+          if (visibleSlots.length === 0) return (
+            <p className="text-base py-6 text-center" style={{ color: '#555' }}>
+              No hay horarios disponibles para este día
+            </p>
+          )
+
+          return (
+            <div className="flex flex-col gap-2">
+              {visibleSlots.map((slot) => {
+                const isSelected = selectedSlot?.id === slot.id
+                const start = slot.start_time.slice(0, 5)
+                const end   = slot.end_time.slice(0, 5)
+                return (
+                  <button
+                    key={slot.id}
+                    onClick={() => onSelectSlot(slot)}
+                    className="flex items-center justify-between px-4 py-3 rounded-xl text-base font-medium transition-all duration-150 active:scale-[0.98]"
+                    style={{
+                      backgroundColor: isSelected ? '#C9A96E' : 'rgba(201,169,110,0.07)',
+                      color:           isSelected ? '#0A0A0A' : '#F5F5F5',
+                      border:          isSelected
+                        ? '1px solid #C9A96E'
+                        : '1px solid rgba(201,169,110,0.15)',
+                      boxShadow: isSelected ? '0 0 12px rgba(201,169,110,0.2)' : 'none',
+                    }}
+                    aria-pressed={isSelected}
+                  >
+                    <span>{start}</span>
+                    <span
+                      className="text-sm"
+                      style={{ color: isSelected ? 'rgba(0,0,0,0.5)' : '#5A5450' }}
+                    >
+                      hasta {end}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          )
+        })()
       )}
     </div>
   )

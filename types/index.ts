@@ -1,4 +1,11 @@
-export type AppointmentStatus = 'confirmed' | 'cancelled'
+export type AppointmentStatus =
+  | 'confirmed'
+  | 'cancelled'
+  | 'cancelled_by_client'
+  | 'cancelled_by_admin'
+  | 'rescheduled'
+  | 'completed'
+  | 'no_show'
 
 export interface Appointment {
   id: string
@@ -11,6 +18,14 @@ export interface Appointment {
   notes?: string
   status: AppointmentStatus
   created_at: string
+  cancelled_at?: string | null
+  cancellation_reason?: string | null
+  rescheduled_at?: string | null
+  previous_slot_date?: string | null
+  previous_slot_start_time?: string | null
+  completed_at?: string | null
+  reminder_24h_sent_at?: string | null
+  reminder_2h_sent_at?: string | null
 }
 
 export interface AvailabilitySlot {
@@ -51,4 +66,40 @@ export interface AgendaDay {
   confirmedCount: number
   blockedCount: number
   freeCount: number
+}
+
+/* ─── Phase 2: Client Premium types ─────────────────────────── */
+
+export interface BookingSettings {
+  cancel_hours_before: number
+  reschedule_hours_before: number
+  advance_booking_days: number
+  min_hours_advance: number
+  whatsapp_phone: string
+  business_name: string
+  business_location: string
+  whatsapp_cancel_msg: string
+  whatsapp_reschedule_msg: string
+  reminders_enabled: boolean
+  reminder_24h_enabled: boolean
+  reminder_2h_enabled: boolean
+  bookings_enabled: boolean
+}
+
+export interface Service {
+  id: string
+  name: string
+  price_eur: number
+  duration_minutes: number
+  is_active: boolean
+  display_order: number
+  created_at?: string
+}
+
+export function isActiveFutureAppointment(appt: Appointment, today: string): boolean {
+  return appt.status === 'confirmed' && appt.slot_date >= today
+}
+
+export function isCancelledStatus(status: AppointmentStatus): boolean {
+  return status === 'cancelled' || status === 'cancelled_by_client' || status === 'cancelled_by_admin'
 }

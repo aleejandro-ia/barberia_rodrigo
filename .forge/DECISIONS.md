@@ -52,3 +52,15 @@
 [2026-05-30] TimeSlotPicker refreshKey prop — Reason: Cuando SLOT_TAKEN, el slot tomado seguía visible. Parent incrementa refreshKey → TimeSlotPicker re-fetch → lista actualizada.
 
 [2026-05-30] BookingCalendar maxMonth = today + 3 meses — Reason: Sin límite, usuario podía navegar al infinito. 3 meses es suficiente horizonte de planificación para una barbería.
+
+[2026-05-30] notes column reusada para servicio seleccionado — Reason: 3 servicios fijos no justifican columna nueva. notes es string libre, el valor del select cabe perfectamente. Sin schema change ni migración.
+
+[2026-05-30] appointments.user_id nullable para walk-ins — Reason: Admin necesita crear citas sin que el cliente tenga cuenta Google. user_id NULL = walk-in identificado por nombre+teléfono solamente.
+
+[2026-05-30] Partial unique index WHERE status='confirmed' reemplaza unique constraint — Reason: Constraint original bloqueaba re-reservar slots con citas canceladas. Partial index solo enforce unicidad en confirmed, slots cancelados quedan libres para nueva reserva.
+
+[2026-05-30] Discriminated union AgendaModalMode — Reason: 7 acciones distintas (crear/editar/cancelar cita, bloquear/desbloquear slot, editar horas, bulk-creator) en un único modal con estado explícito. Evita 7 componentes Dialog separados o boolean flags complejos.
+
+[2026-05-30] /api/admin/agenda GET con join en memoria — Reason: Supabase no tiene JOIN cómodo entre slots y appointments con prioridad confirmed>cancelled. Join en memoria tras 2 queries paralelas es más legible y suficientemente performante para rangos de ≤14 días.
+
+[2026-05-30] startOfWeek weekStartsOn:1 (date-fns) para anclar semana al lunes — Reason: Semana laboral en España empieza lunes. Sin weekStartsOn:1 date-fns usa domingo (ISO americano).

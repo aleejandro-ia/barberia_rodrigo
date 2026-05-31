@@ -20,6 +20,7 @@ import type { Appointment } from '@/types'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 import { format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { useRouter } from 'next/navigation'
 
 /* ─── Types ────────────────────────────────────────────────── */
 interface Slot {
@@ -28,16 +29,16 @@ interface Slot {
   end_time: string
 }
 
-interface ActiveBooking {
-  id: string
-  slot_date: string
-  slot_start_time: string
-}
-
-type BookingStep = 'date' | 'slot' | 'form' | 'confirmed' | 'blocked'
+type BookingStep = 'date' | 'slot' | 'form' | 'confirmed'
 
 /* ─── Constants ────────────────────────────────────────────── */
 const BOOKING_STORAGE_KEY = 'bgbarber_pending_booking'
+
+const FALLBACK_SERVICES = [
+  { id: '1', name: 'Corte Clásico', price_eur: 7 },
+  { id: '2', name: 'Corte',         price_eur: 9 },
+  { id: '3', name: 'Corte con Barba', price_eur: 10 },
+]
 
 const ERROR_MESSAGES: Record<string, string> = {
   SLOT_TAKEN:          'Ese hueco ya fue reservado. Elige otro.',
@@ -45,6 +46,8 @@ const ERROR_MESSAGES: Record<string, string> = {
   ALREADY_HAS_BOOKING: 'Ya tienes una cita activa.',
   VALIDATION_ERROR:    'Revisa los datos introducidos.',
   UNAUTHORIZED:        'Sesión expirada. Recarga la página.',
+  BOOKINGS_DISABLED:   'Las reservas online están desactivadas temporalmente.',
+  TOO_SOON:            'Este hueco está demasiado próximo. Reserva con más antelación.',
   DEFAULT:             'Algo falló. Inténtalo de nuevo.',
 }
 
@@ -129,52 +132,67 @@ function BackButton({ onClick, label }: { onClick: () => void; label: string }) 
   )
 }
 
-/* ─── Blocked state (user already has booking) ─────────────── */
-function BlockedState({ booking }: { booking: ActiveBooking | null }) {
-  const dateLabel = booking
-    ? format(parseISO(booking.slot_date), "EEEE d 'de' MMMM yyyy", { locale: es })
-    : null
+/* ─── Multi-booking warning dialog ────────────────────────── */
+interface MultiBookingWarningProps {
+  onContinue: () => void
+  onViewCitas: () => void
+}
 
+function MultiBookingWarning({ onContinue, onViewCitas }: MultiBookingWarningProps) {
   return (
     <div
-      className="flex flex-col items-center text-center py-10 gap-5 rounded-2xl"
-      style={{ backgroundColor: '#161310', border: '1px solid rgba(201,169,110,0.12)' }}
+      className="fixed inset-0 z-50 flex items-center justify-center px-4"
+      style={{ backgroundColor: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}
     >
       <div
-        className="w-14 h-14 rounded-full flex items-center justify-center"
-        style={{ backgroundColor: 'rgba(201,169,110,0.1)', border: '1px solid rgba(201,169,110,0.25)' }}
+        className="w-full max-w-sm rounded-2xl p-6 flex flex-col gap-5"
+        style={{
+          backgroundColor: '#161310',
+          border: '1px solid rgba(201,169,110,0.2)',
+          boxShadow: '0 24px 48px rgba(0,0,0,0.6)',
+        }}
       >
-        <CheckCircle size={28} weight="fill" style={{ color: '#C9A96E' }} />
-      </div>
-      <div>
-        <p className="text-lg font-semibold" style={{ color: '#F2EDE7' }}>
-          Ya tienes una cita reservada
+        <div className="flex items-center gap-3">
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{ backgroundColor: 'rgba(201,169,110,0.1)', border: '1px solid rgba(201,169,110,0.25)' }}
+          >
+            <CheckCircle size={22} weight="fill" style={{ color: '#C9A96E' }} />
+          </div>
+          <p className="text-base font-semibold" style={{ color: '#F2EDE7' }}>
+            Ya tienes cita(s) activa(s)
+          </p>
+        </div>
+        <p className="text-sm" style={{ color: '#7A7268' }}>
+          ¿Seguro que quieres añadir otra?
         </p>
-        {dateLabel && (
-          <>
-            <p className="mt-2 text-sm capitalize" style={{ color: '#888' }}>
-              {dateLabel}
-            </p>
-            <p className="text-base font-semibold mt-1" style={{ color: '#C9A96E' }}>
-              {booking!.slot_start_time.slice(0, 5)}
-            </p>
-          </>
-        )}
+        <div className="flex flex-col gap-2">
+          <button
+            onClick={onViewCitas}
+            className="w-full py-2.5 rounded-full text-sm font-semibold transition-opacity hover:opacity-80"
+            style={{ backgroundColor: '#C9A96E', color: '#0E0B08' }}
+          >
+            Ver mis citas →
+          </button>
+          <button
+            onClick={onContinue}
+            className="w-full py-2.5 rounded-full text-sm font-medium transition-opacity hover:opacity-70"
+            style={{ color: '#7A7268', border: '1px solid rgba(201,169,110,0.15)' }}
+          >
+            Continuar de todas formas
+          </button>
+        </div>
       </div>
-      <p className="text-sm max-w-xs" style={{ color: '#5A5450' }}>
-        Para ver o cancelar tu cita, haz clic en{' '}
-        <span style={{ color: '#C9A96E' }}>Mis citas</span> en el menú superior.
-      </p>
     </div>
   )
 }
 
 /* ─── Form fields (shared between mobile + desktop) ────────── */
-const SERVICES = [
-  { value: 'Corte Clásico',    label: 'Corte Clásico — 7€' },
-  { value: 'Corte',            label: 'Corte — 9€' },
-  { value: 'Corte con Barba',  label: 'Corte con Barba — 10€' },
-]
+interface ServiceItem {
+  id: string
+  name: string
+  price_eur: number
+}
 
 interface FormFieldsProps {
   name:       string
@@ -183,9 +201,10 @@ interface FormFieldsProps {
   setName:    (v: string) => void
   setPhone:   (v: string) => void
   setService: (v: string) => void
+  services:   ServiceItem[]
 }
 
-function FormFields({ name, phone, service, setName, setPhone, setService }: FormFieldsProps) {
+function FormFields({ name, phone, service, setName, setPhone, setService, services }: FormFieldsProps) {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-1">
@@ -245,9 +264,9 @@ function FormFields({ name, phone, service, setName, setPhone, setService }: For
           onBlur={(e)  => (e.target.style.borderColor = 'rgba(201,169,110,0.2)')}
         >
           <option value="" disabled style={{ backgroundColor: '#1A1A1A' }}>Selecciona un servicio…</option>
-          {SERVICES.map((s) => (
-            <option key={s.value} value={s.value} style={{ backgroundColor: '#1A1A1A' }}>
-              {s.label}
+          {services.map((s) => (
+            <option key={s.id} value={s.name} style={{ backgroundColor: '#1A1A1A' }}>
+              {s.name} — {s.price_eur}€
             </option>
           ))}
         </select>
@@ -316,6 +335,7 @@ interface SummaryPanelProps {
   loading:  boolean
   error:    string | null
   step:     BookingStep
+  services: ServiceItem[]
 }
 
 function SummaryPanel({
@@ -333,6 +353,7 @@ function SummaryPanel({
   loading,
   error,
   step,
+  services,
 }: SummaryPanelProps) {
   const dateLabel = selectedDate
     ? format(parseISO(selectedDate), "d 'de' MMMM, yyyy", { locale: es })
@@ -470,6 +491,7 @@ function SummaryPanel({
             <FormFields
               name={name} phone={phone} service={service}
               setName={setName} setPhone={setPhone} setService={setService}
+              services={services}
             />
           </div>
         )}
@@ -497,12 +519,12 @@ function SummaryPanel({
 export default function BookingSection() {
   const shouldReduceMotion = useReducedMotion()
   const ease = [0.16, 1, 0.3, 1] as const
+  const router = useRouter()
 
   /* State */
   const [step,         setStep]         = useState<BookingStep>('date')
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null)
-  const [activeBooking, setActiveBooking] = useState<ActiveBooking | null>(null)
   const [name,  setName]  = useState('')
   const [phone, setPhone] = useState('')
   const [service, setService] = useState('')
@@ -512,6 +534,19 @@ export default function BookingSection() {
   const [authModalOpen, setAuthModalOpen] = useState(false)
   const [slotRefreshKey, setSlotRefreshKey] = useState(0)
   const [confirmedAppointment, setConfirmedAppointment] = useState<Appointment | null>(null)
+  const [services, setServices] = useState<ServiceItem[]>([])
+  const [showMultiBookingWarning, setShowMultiBookingWarning] = useState(false)
+
+  /* ── Fetch services from API ──────────────────────────────── */
+  useEffect(() => {
+    fetch('/api/services')
+      .then((r) => r.json())
+      .then((d) => {
+        if (Array.isArray(d.services) && d.services.length > 0) setServices(d.services)
+        else setServices(FALLBACK_SERVICES)
+      })
+      .catch(() => setServices(FALLBACK_SERVICES))
+  }, [])
 
   /* ── Auth + setup ────────────────────────────────────────── */
   useEffect(() => {
@@ -520,10 +555,7 @@ export default function BookingSection() {
     const setupUser = async (currentUser: SupabaseUser | null, event?: string) => {
       setUser(currentUser)
 
-      if (!currentUser) {
-        setActiveBooking(null)
-        return
-      }
+      if (!currentUser) return
 
       // Prefill from profile (don't overwrite if user already typed)
       const { data: profile } = await supabase
@@ -533,22 +565,6 @@ export default function BookingSection() {
         .maybeSingle()
       if (profile?.full_name) setName((n) => n || profile.full_name)
       if (profile?.phone)     setPhone((p) => p || profile.phone)
-
-      // Check for active future booking
-      const today = new Date().toISOString().split('T')[0]
-      const { data: booking } = await supabase
-        .from('appointments')
-        .select('id, slot_date, slot_start_time')
-        .eq('user_id', currentUser.id)
-        .eq('status', 'confirmed')
-        .gte('slot_date', today)
-        .maybeSingle()
-
-      if (booking) {
-        setActiveBooking(booking)
-        setStep('blocked')
-        return
-      }
 
       // Restore pending slot after OAuth redirect
       // Only on SIGNED_IN event (= after Google OAuth redirect back)
@@ -595,7 +611,7 @@ export default function BookingSection() {
     setStep('slot')
   }
 
-  function handleSelectSlot(slot: Slot) {
+  async function handleSelectSlot(slot: Slot) {
     if (!user) {
       // Save pending booking before Google OAuth redirect
       try {
@@ -609,6 +625,24 @@ export default function BookingSection() {
     }
     setSelectedSlot(slot)
     setError(null)
+
+    // Check for existing confirmed future appointments
+    try {
+      const res = await fetch('/api/appointments/mine')
+      const data = await res.json()
+      const futureConfirmed = Array.isArray(data.appointments)
+        ? data.appointments.filter((a: { status: string; slot_date: string }) =>
+            a.status === 'confirmed' && a.slot_date >= new Date().toISOString().split('T')[0]
+          )
+        : []
+      if (futureConfirmed.length > 0) {
+        setShowMultiBookingWarning(true)
+        return
+      }
+    } catch {
+      // Network error — proceed without warning
+    }
+
     setStep('form')
   }
 
@@ -623,6 +657,16 @@ export default function BookingSection() {
     setSelectedSlot(null)
     setError(null)
     setStep('slot')
+  }
+
+  function handleWarningContinue() {
+    setShowMultiBookingWarning(false)
+    setStep('form')
+  }
+
+  function handleWarningViewCitas() {
+    setShowMultiBookingWarning(false)
+    router.push('/mis-citas')
   }
 
   /* ── Confirm booking ─────────────────────────────────────── */
@@ -651,8 +695,6 @@ export default function BookingSection() {
         setSelectedSlot(null)
         setStep('slot')
         setError('Ese hueco ya fue reservado. Elige otro horario.')
-      } else if (result.error === 'ALREADY_HAS_BOOKING') {
-        setStep('blocked')
       } else {
         setError(ERROR_MESSAGES[result.error] ?? ERROR_MESSAGES.DEFAULT)
       }
@@ -694,6 +736,14 @@ export default function BookingSection() {
       className="py-24 md:py-36 px-6"
       style={{ backgroundColor: '#161310' }}
     >
+      {/* Multi-booking warning dialog */}
+      {showMultiBookingWarning && (
+        <MultiBookingWarning
+          onContinue={handleWarningContinue}
+          onViewCitas={handleWarningViewCitas}
+        />
+      )}
+
       <div className="max-w-6xl mx-auto">
 
         {/* Header */}
@@ -734,9 +784,6 @@ export default function BookingSection() {
             {(step === 'date' || step === 'slot' || step === 'form') && (
               <StepIndicator step={step} />
             )}
-
-            {/* Blocked state */}
-            {step === 'blocked' && <BlockedState booking={activeBooking} />}
 
             {/* Confirmed state */}
             {step === 'confirmed' && confirmedAppointment && (
@@ -814,6 +861,7 @@ export default function BookingSection() {
                 <FormFields
                   name={name} phone={phone} service={service}
                   setName={setName} setPhone={setPhone} setService={setService}
+                  services={services}
                 />
 
                 {error && <div className="mt-3"><ErrorBanner message={error} /></div>}
@@ -834,9 +882,7 @@ export default function BookingSection() {
 
             {/* LEFT: summary panel or terminal states */}
             <div className="min-h-[400px]">
-              {step === 'blocked' ? (
-                <BlockedState booking={activeBooking} />
-              ) : step === 'confirmed' && confirmedAppointment ? (
+              {step === 'confirmed' && confirmedAppointment ? (
                 <div
                   className="rounded-2xl p-8"
                   style={{ backgroundColor: '#161310', border: '1px solid rgba(201,169,110,0.12)' }}
@@ -859,12 +905,13 @@ export default function BookingSection() {
                   loading={loading}
                   error={error}
                   step={step}
+                  services={services}
                 />
               )}
             </div>
 
-            {/* RIGHT: calendar + slots (hidden in terminal states) */}
-            {step !== 'blocked' && step !== 'confirmed' && (
+            {/* RIGHT: calendar + slots (hidden in confirmed state) */}
+            {step !== 'confirmed' && (
               <div
                 className="rounded-2xl overflow-hidden"
                 style={{ backgroundColor: '#161310', border: '1px solid rgba(201,169,110,0.12)' }}

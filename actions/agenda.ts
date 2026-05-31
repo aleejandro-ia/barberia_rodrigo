@@ -204,3 +204,152 @@ export async function adminEditSlotTimes(
   revalidate()
   return { success: true }
 }
+
+/* ─── adminRescheduleAppointment ─────────────────────────────── */
+export async function adminRescheduleAppointment(
+  appointmentId: string,
+  newSlot: { slot_date: string; slot_start_time: string; slot_end_time: string }
+): Promise<{ success: true } | { error: 'UNAUTHORIZED' | 'NOT_FOUND' | 'NOT_CONFIRMED' | 'SLOT_TAKEN' }> {
+  const user = await getUser()
+  if (!isAdmin(user)) return { error: 'UNAUTHORIZED' }
+
+  const supabase = await createClient()
+  const { data: appt } = await supabase
+    .from('appointments')
+    .select('id, status, slot_date, slot_start_time, client_name, user_id, notes')
+    .eq('id', appointmentId)
+    .maybeSingle()
+  if (!appt) return { error: 'NOT_FOUND' }
+  if (appt.status !== 'confirmed') return { error: 'NOT_CONFIRMED' }
+
+  // Check new slot is not already taken (ignore current appointment)
+  const { data: taken } = await supabase
+    .from('appointments')
+    .select('id')
+    .eq('slot_date', newSlot.slot_date)
+    .eq('slot_start_time', newSlot.slot_start_time)
+    .eq('status', 'confirmed')
+    .neq('id', appointmentId)
+    .maybeSingle()
+  if (taken) return { error: 'SLOT_TAKEN' }
+
+  await supabase.from('appointments').update({
+    slot_date: newSlot.slot_date,
+    slot_start_time: newSlot.slot_start_time,
+    slot_end_time: newSlot.slot_end_time,
+    rescheduled_at: new Date().toISOString(),
+    previous_slot_date: appt.slot_date,
+    previous_slot_start_time: appt.slot_start_time,
+    reminder_24h_sent_at: null,
+    reminder_2h_sent_at: null,
+  }).eq('id', appointmentId)
+
+  // Email notification (optional — degrades gracefully)
+  try {
+    // Getting client email requires service_role — skip for now
+    // Will be enhanced when SUPABASE_SERVICE_ROLE_KEY is used in cron
+  } catch (e) {
+    console.warn('[adminRescheduleAppointment] email skipped:', e)
+  }
+
+  revalidate()
+  revalidatePath('/mis-citas')
+  return { success: true }
+}
+
+/* ─── adminMarkNoShow ────────────────────────────────────────── */
+export async function adminMarkNoShow(
+  appointmentId: string
+): Promise<{ success: true } | { error: 'UNAUTHORIZED' | 'NOT_FOUND' | 'NOT_CONFIRMED' }> {
+  const user = await getUser()
+  if (!isAdmin(user)) return { error: 'UNAUTHORIZED' }
+
+  const supabase = await createClient()
+  const { data: appt } = await supabase
+    .from('appointments')
+    .select('id, status')
+    .eq('id', appointmentId)
+    .maybeSingle()
+  if (!appt) return { error: 'NOT_FOUND' }
+  if (appt.status !== 'confirmed') return { error: 'NOT_CONFIRMED' }
+
+  await supabase.from('appointments').update({ status: 'no_show' }).eq('id', appointmentId)
+
+  revalidate()
+  return { success: true }
+}
+
+/* ─── adminMarkCompleted ─────────────────────────────────────── */
+export async function adminMarkCompleted(
+  appointmentId: string
+): Promise<{ success: true } | { error: 'UNAUTHORIZED' | 'NOT_FOUND' | 'NOT_CONFIRMED' }> {
+  const user = await getUser()
+  if (!isAdmin(user)) return { error: 'UNAUTHORIZED' }
+
+  const supabase = await createClient()
+  const { data: appt } = await supabase
+    .from('appointments')
+    .select('id, status')
+    .eq('id', appointmentId)
+    .maybeSingle()
+  if (!appt) return { error: 'NOT_FOUND' }
+  if (appt.status !== 'confirmed') return { error: 'NOT_CONFIRMED' }
+
+  await supabase.from('appointments').update({
+    status: 'completed',
+    completed_at: new Date().toISOString(),
+  }).eq('id', appointmentId)
+
+  revalidate()
+  return { success: true }
+}
+
+/* ─── adminCopyWeekToNext ────────────────────────────────────── */
+export async function adminCopyWeekToNext(
+  weekStart: string // 'YYYY-MM-DD' — Monday of the week to copy
+): Promise<{ created: number; skipped: number } | { error: 'UNAUTHORIZED' | 'NOT_FOUND' }> {
+  const user = await getUser()
+  if (!isAdmin(user)) return { error: 'UNAUTHORIZED' }
+
+  const supabase = await createClient()
+
+  // Get all slots for this week (Mon to Sun)
+  const weekStartDate = new Date(weekStart)
+  const weekEndDate = new Date(weekStart)
+  weekEndDate.setDate(weekEndDate.getDate() + 6)
+  const weekEnd = weekEndDate.toISOString().split('T')[0]
+
+  const { data: slots } = await supabase
+    .from('availability_slots')
+    .select('date, start_time, end_time, is_available')
+    .gte('date', weekStart)
+    .lte('date', weekEnd)
+
+  if (!slots || slots.length === 0) return { error: 'NOT_FOUND' }
+
+  // Build next-week slots (+7 days)
+  const nextWeekSlots = slots.map(slot => {
+    const d = new Date(slot.date)
+    d.setDate(d.getDate() + 7)
+    return {
+      date: d.toISOString().split('T')[0],
+      start_time: slot.start_time,
+      end_time: slot.end_time,
+      is_available: slot.is_available,
+    }
+  })
+
+  // Insert one by one to handle duplicates gracefully
+  let created = 0
+  let skipped = 0
+  for (const slot of nextWeekSlots) {
+    const { error: insertError } = await supabase
+      .from('availability_slots')
+      .insert(slot)
+    if (insertError) skipped++
+    else created++
+  }
+
+  revalidate()
+  return { created, skipped }
+}

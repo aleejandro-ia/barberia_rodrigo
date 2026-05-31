@@ -92,6 +92,18 @@ export default function AdminAgendaPage() {
   function openBulkCreator(date: string) {
     setModalMode({ type: 'bulk-creator', date })
   }
+  function openRescheduleAppointment(appointment: Appointment) {
+    setModalMode({ type: 'reschedule-appointment', appointment })
+  }
+  function openMarkNoShow(appointment: Appointment) {
+    setModalMode({ type: 'mark-no-show', appointment })
+  }
+  function openMarkCompleted(appointment: Appointment) {
+    setModalMode({ type: 'mark-completed', appointment })
+  }
+  function openClientHistory(appointment: Appointment) {
+    setModalMode({ type: 'client-history', appointment })
+  }
   function closeModal() {
     setModalMode({ type: 'closed' })
   }
@@ -128,6 +140,7 @@ export default function AdminAgendaPage() {
       {/* Week navigation */}
       <AgendaWeekNav
         weekLabel={weekLabel(weekStart)}
+        weekStart={weekStart}
         onPrev={goToPrev}
         onNext={goToNext}
         onToday={goToToday}
@@ -156,6 +169,10 @@ export default function AdminAgendaPage() {
             onEditAppointment={openEditAppointment}
             onCancelAppointment={openCancelAppointment}
             onOpenBulkCreator={openBulkCreator}
+            onRescheduleAppointment={openRescheduleAppointment}
+            onMarkNoShow={openMarkNoShow}
+            onMarkCompleted={openMarkCompleted}
+            onViewClientHistory={openClientHistory}
           />
         </div>
       </div>

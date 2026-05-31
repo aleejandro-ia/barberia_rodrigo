@@ -4,8 +4,12 @@ import { createClient } from '@/lib/supabase/server'
 import { getUser, isAdmin } from '@/lib/auth'
 import { bookAppointmentSchema } from '@/lib/validations'
 import { revalidatePath } from 'next/cache'
+import { getBookingSettings } from '@/actions/bookingSettings'
 
-export async function bookAppointment(data: unknown) {
+export async function bookAppointment(data: unknown): Promise<
+  | { appointment: { id: string; slot_date: string; slot_start_time: string; status: string } }
+  | { error: 'VALIDATION_ERROR' | 'UNAUTHORIZED' | 'BOOKINGS_DISABLED' | 'TOO_SOON' | 'SLOT_NOT_FOUND' | 'SLOT_TAKEN' | 'ALREADY_HAS_BOOKING' }
+> {
   const parsed = bookAppointmentSchema.safeParse(data)
   if (!parsed.success) return { error: 'VALIDATION_ERROR' as const }
 
@@ -16,9 +20,18 @@ export async function bookAppointment(data: unknown) {
   const { slot_date, slot_start_time, slot_end_time, client_name, client_phone, notes } =
     parsed.data
 
+  // Check bookings enabled
+  const settings = await getBookingSettings()
+  if (!settings.bookings_enabled) return { error: 'BOOKINGS_DISABLED' as const }
+
   // slot_date must not be in the past
   const today = new Date().toISOString().split('T')[0]
   if (slot_date < today) return { error: 'VALIDATION_ERROR' as const }
+
+  // Check min_hours_advance
+  const slotDT = new Date(`${slot_date}T${slot_start_time}`)
+  const hoursUntil = (slotDT.getTime() - Date.now()) / (1000 * 60 * 60)
+  if (hoursUntil < settings.min_hours_advance) return { error: 'TOO_SOON' as const }
 
   // Check slot exists and is available
   const { data: slot } = await supabase
@@ -40,15 +53,7 @@ export async function bookAppointment(data: unknown) {
     .maybeSingle()
   if (existingBooking) return { error: 'SLOT_TAKEN' as const }
 
-  // Check user has no active future booking
-  const { data: userBooking } = await supabase
-    .from('appointments')
-    .select('id')
-    .eq('user_id', user.id)
-    .eq('status', 'confirmed')
-    .gte('slot_date', today)
-    .maybeSingle()
-  if (userBooking) return { error: 'ALREADY_HAS_BOOKING' as const }
+  // NOTE: ALREADY_HAS_BOOKING check removed — multiple bookings allowed, UI warns instead
 
   // Create appointment
   const { data: appointment, error } = await supabase
@@ -79,15 +84,108 @@ export async function cancelAppointment(appointmentId: string) {
   const supabase = await createClient()
   const { data: appt } = await supabase
     .from('appointments')
-    .select('id, user_id, status')
+    .select('id, user_id, status, slot_date, slot_start_time, client_name, client_phone, notes')
     .eq('id', appointmentId)
     .maybeSingle()
   if (!appt) return { error: 'NOT_FOUND' as const }
   if (appt.user_id !== user.id) return { error: 'NOT_OWNER' as const }
-  if (appt.status === 'cancelled') return { error: 'ALREADY_CANCELLED' as const }
+  if (appt.status !== 'confirmed') return { error: 'ALREADY_CANCELLED' as const }
 
-  await supabase.from('appointments').update({ status: 'cancelled' }).eq('id', appointmentId)
+  // Validate cancellation time window
+  const settings = await getBookingSettings()
+  const apptDT = new Date(`${appt.slot_date}T${appt.slot_start_time}`)
+  const hoursUntil = (apptDT.getTime() - Date.now()) / (1000 * 60 * 60)
+  if (hoursUntil < settings.cancel_hours_before) return { error: 'CANCEL_TOO_LATE' as const }
+
+  await supabase.from('appointments').update({
+    status: 'cancelled_by_client',
+    cancelled_at: new Date().toISOString(),
+  }).eq('id', appointmentId)
+
+  // Email (optional — degrades gracefully)
+  try {
+    if (user.email) {
+      const { sendCancellationEmail } = await import('@/lib/email/resend')
+      await sendCancellationEmail({
+        to: user.email,
+        name: appt.client_name,
+        date: appt.slot_date,
+        time: appt.slot_start_time.slice(0, 5),
+        service: appt.notes ?? undefined,
+        business: settings.business_name,
+      })
+    }
+  } catch (e) {
+    console.warn('[cancelAppointment] email failed:', e)
+  }
+
   revalidatePath('/')
+  revalidatePath('/mis-citas')
+  return { success: true as const }
+}
+
+export async function rescheduleAppointment(
+  appointmentId: string,
+  newSlot: { slot_date: string; slot_start_time: string; slot_end_time: string }
+) {
+  const user = await getUser()
+  if (!user) return { error: 'UNAUTHORIZED' as const }
+
+  const supabase = await createClient()
+  const { data: appt } = await supabase
+    .from('appointments')
+    .select('id, user_id, status, slot_date, slot_start_time')
+    .eq('id', appointmentId)
+    .maybeSingle()
+  if (!appt) return { error: 'NOT_FOUND' as const }
+  if (appt.user_id !== user.id) return { error: 'NOT_OWNER' as const }
+  if (appt.status !== 'confirmed') return { error: 'NOT_CONFIRMED' as const }
+
+  // Validate reschedule time window
+  const settings = await getBookingSettings()
+  const apptDT = new Date(`${appt.slot_date}T${appt.slot_start_time}`)
+  const hoursUntil = (apptDT.getTime() - Date.now()) / (1000 * 60 * 60)
+  if (hoursUntil < settings.reschedule_hours_before) return { error: 'RESCHEDULE_TOO_LATE' as const }
+
+  // Validate new slot is not in the past
+  const today = new Date().toISOString().split('T')[0]
+  if (newSlot.slot_date < today) return { error: 'VALIDATION_ERROR' as const }
+
+  // Check new slot exists and is available
+  const { data: slot } = await supabase
+    .from('availability_slots')
+    .select('id')
+    .eq('date', newSlot.slot_date)
+    .eq('start_time', newSlot.slot_start_time)
+    .eq('is_available', true)
+    .maybeSingle()
+  if (!slot) return { error: 'SLOT_NOT_FOUND' as const }
+
+  // Check new slot is not already taken (ignore current appointment)
+  const { data: taken } = await supabase
+    .from('appointments')
+    .select('id')
+    .eq('slot_date', newSlot.slot_date)
+    .eq('slot_start_time', newSlot.slot_start_time)
+    .eq('status', 'confirmed')
+    .neq('id', appointmentId)
+    .maybeSingle()
+  if (taken) return { error: 'SLOT_TAKEN' as const }
+
+  // UPDATE in-place — old slot is freed automatically
+  await supabase.from('appointments').update({
+    slot_date: newSlot.slot_date,
+    slot_start_time: newSlot.slot_start_time,
+    slot_end_time: newSlot.slot_end_time,
+    rescheduled_at: new Date().toISOString(),
+    previous_slot_date: appt.slot_date,
+    previous_slot_start_time: appt.slot_start_time,
+    reminder_24h_sent_at: null,
+    reminder_2h_sent_at: null,
+  }).eq('id', appointmentId)
+
+  revalidatePath('/')
+  revalidatePath('/mis-citas')
   return { success: true as const }
 }
 
@@ -98,13 +196,31 @@ export async function adminCancelAppointment(appointmentId: string) {
   const supabase = await createClient()
   const { data: appt } = await supabase
     .from('appointments')
-    .select('id, status')
+    .select('id, status, slot_date, slot_start_time, client_name, client_phone, notes, user_id')
     .eq('id', appointmentId)
     .maybeSingle()
   if (!appt) return { error: 'NOT_FOUND' as const }
-  if (appt.status === 'cancelled') return { error: 'ALREADY_CANCELLED' as const }
+  if (appt.status === 'cancelled' || appt.status === 'cancelled_by_admin') {
+    return { error: 'ALREADY_CANCELLED' as const }
+  }
 
-  await supabase.from('appointments').update({ status: 'cancelled' }).eq('id', appointmentId)
+  await supabase.from('appointments').update({
+    status: 'cancelled_by_admin',
+    cancelled_at: new Date().toISOString(),
+  }).eq('id', appointmentId)
+
+  // Email client (optional — walk-ins skipped, degrades gracefully)
+  try {
+    if (appt.user_id) {
+      // Getting client email requires service_role — skip for now
+      // Will be handled by cron with service_role key
+    }
+  } catch (e) {
+    console.warn('[adminCancelAppointment] email skipped:', e)
+  }
+
   revalidatePath('/admin')
+  revalidatePath('/admin/agenda')
+  revalidatePath('/mis-citas')
   return { success: true as const }
 }

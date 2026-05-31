@@ -1,53 +1,89 @@
 # Project Brief
-Generated: 2026-05-29
-Mode: GREENFIELD
+Generated: 2026-05-31
+Mode: CONTINUATION — Fase 2 (Cliente Premium + Admin Profesional)
 
 ## What the user wants
-Mini landing page premium para la barbería de Rodrigo. Objetivo: agendar citas online. Landing con hero inspirado en Instagram del barbero (foto perfil + lema), sección "sobre mí", galería de cortes con plantilla uniforme, sección de reservas con calendario. Panel de administrador para que Rodrigo gestione fotos de la galería, defina qué días y horas abre, y vea/gestione las citas. Clientes autenticados via teléfono (OTP) o Google para evitar reservas fantasma. Botón flotante de WhatsApp para contacto directo.
+BG Barber es un producto SaaS replicable para peluquerías. Rodrigo lo usa como instancia piloto.
+Objetivo de esta fase: convertir el sistema en una experiencia premium completa — área "Mis citas" para el cliente, cancelación y reprogramación con reglas configurables, catálogo de servicios administrable, email transaccional con Resend, recordatorios automáticos por Vercel Cron, métricas operativas en admin, historial de cliente, y todas las acciones admin completadas (reprogramar, no-show, completada). Toda la lógica del agendador debe ser robusta frente a todos los escenarios posibles.
 
 ## Problem & users
-When [a client wants a haircut], [barbershop customers] want [to book a slot online without calling] so they can [secure their appointment and avoid waiting].
-Specific users: (1) Clients - book appointments, need phone/Google auth; (2) Rodrigo (admin) - manage gallery, set weekly availability, view/cancel appointments.
-Why now: friend asked for it, has no online booking system currently.
+When [a client wants to manage their appointment], [barbershop customers] want [to cancel/reschedule without calling the barber] so they can [self-serve their own bookings like a premium service].
+When [the barber wants to run his business], [Rodrigo as admin] wants [to manage clients, mark attendance, see metrics, and control the catalog] so he can [operate professionally and sell the product to other barbershops].
+Specific users: (1) Clients — Google OAuth, multi-appointment, self-service cancellation/rescheduling, calendar export, email reminders; (2) Admin (Rodrigo) — full agenda control, service catalog, metrics, copy-week, client history.
+Why now: product pivot from hobby project to SaaS — needs professional-grade features before replicating.
 
 ## Appetite
-Team: solo developer (Alejandro building for friend Rodrigo)
-Time investment: days to 1 week
-Hard constraints: free/low-cost infra, phone OTP must work, single admin user
+Team: solo developer (Alejandro)
+Time investment: 1-2 sessions of focused development
+Hard constraints: no breaking changes to existing flows, backwards compatible DB, email optional (degrades gracefully if RESEND_API_KEY missing)
 
-## Solution — v1 scope
-Type: web app (Next.js public landing + admin panel)
-Core features (max 3):
-1. Premium public landing page: hero, about, gallery, booking with calendar
-2. Client auth via phone OTP or Google OAuth (anti no-show verification)
-3. Admin panel: gallery management, weekly schedule config, appointments dashboard
-Explicit no-gos: no payments, no multi-barber, no mobile app, no email campaigns
+## Solution — Phase 2 scope
+Type: continuation of existing Next.js App Router web app
+Core features:
+1. Client self-service area (/mis-citas): view, cancel, reschedule, add to calendar
+2. Admin professional tools: reschedule/complete/no-show from agenda, service catalog, metrics, copy week
+3. Email transactional (Resend) + Vercel Cron reminders (graceful degradation if not configured)
+Explicit no-gos: no payments, no multi-barber, no real-time websockets, no mobile app, no SMS
 
 ## Technical decisions
-Stack: Next.js 15 (App Router) + TypeScript + Tailwind v4 + Motion
-Database: Supabase (PostgreSQL) - free tier, RLS, Storage for gallery, built-in Auth
-Auth: Supabase Auth - phone OTP + Google OAuth for clients; admin identified by ADMIN_EMAIL env var checked in middleware
-Deploy: Vercel - free tier, zero config for Next.js
-AI: not applicable
-External integrations: WhatsApp via wa.me link (no API), Supabase Storage (gallery images), Google OAuth via Supabase
+Stack: Next.js 16 App Router + TypeScript + Tailwind v4 (unchanged)
+Database: Supabase PostgreSQL — migration 003 adds services, booking_settings, new appointment fields
+Auth: Supabase Auth Google OAuth (unchanged)
+Email: Resend SDK — server-side only, degrades gracefully without API key
+Cron: Vercel Cron (vercel.json) hitting /api/cron/reminders, secured with CRON_SECRET
+Deploy: Vercel auto-deploy on push to main (unchanged)
+External integrations: Resend (email), WhatsApp via wa.me (unchanged), Google Calendar URL, .ics standard
 
 ## Business model
-Free - personal gift project. No monetization.
+SaaS pilot — free for Rodrigo, intended to be replicated and sold to other barbershops.
+booking_settings tabla enables per-business configuration (foundation for multi-tenant).
 
 ## Technical recommendations
-- Phone OTP uses Supabase/Twilio free tier (~50 SMS/month). Sufficient for a local barbershop.
-- Admin: middleware checks session email against ADMIN_EMAIL env var. No separate admin table needed.
-- Anti-spam: phone OTP forces real phone. Rate limit: 1 active booking per user at a time.
-- WhatsApp: floating button with wa.me/[number] link. Zero API cost.
-- Gallery: Supabase Storage public bucket, URLs stored in gallery_images table.
-- Design: public landing uses high-end-visual-design + design-taste-frontend skills for premium feel. Admin panel uses shadcn/ui functional components.
+- Rescheduling via UPDATE in-place (not create+cancel): avoids RLS INSERT conflict and "don't release old slot" complexity
+- Service catalog stores name in appointments.notes (no FK): backwards compatible, walk-ins can use free text
+- Email is optional/graceful: all email calls check RESEND_API_KEY first — booking never fails because email fails
+- min_hours_advance + bookings_enabled in booking_settings: filtering in action + in TimeSlotPicker UI
+- Client history via phone grouping in appointments table (no separate clients table needed at this scale)
 
 ## Flags & warnings
-- Supabase free phone SMS limit (~50/month). Acceptable for v1 local barbershop volume.
-- Google OAuth needs Google Cloud Console OAuth app setup (simple but manual step for user).
-- Admin panel is intentionally functional/utility - taste skills only apply to public landing.
+- RESEND_API_KEY needed before emails work (resend.com free tier: 3k emails/month)
+- SUPABASE_SERVICE_ROLE_KEY needed for cron to fetch user emails (auth.users table)
+- CRON_SECRET needed to protect /api/cron/reminders endpoint
+- Vercel free plan: 2 cron executions/day max — sufficient for daily reminder batch
+- Walk-in appointments (user_id null) never get email reminders — expected behavior
 
 ## Complexity estimate
-Size: Small-Medium
-Estimated time range: 1 week
-Main complexity drivers: Supabase Auth phone OTP config, weekly availability grid in admin, RLS correctness
+Size: Medium
+Estimated time range: 1-2 focused sessions
+Main complexity drivers: cron + email integration (infrastructure), admin modal expansion (many new modes), BookingSection refactor (remove blocked state, add warning dialog)
+
+---
+
+## Current state audit
+Stack in use: Next.js 16 + Supabase + Tailwind v4 + Vercel + @phosphor-icons/react + motion/react + date-fns
+What works:
+- Full booking flow: date → slot → form → confirmed + OAuth recovery via sessionStorage
+- Admin panel: citas list, gallery, schedule, before-after, settings, agenda semanal
+- Agenda: create/edit/cancel/block slots + walk-in manual booking + WhatsApp links
+- Auth: Google OAuth only, RLS on all tables
+- DB: migrations 001 + 002 applied
+
+What is incomplete:
+- No /mis-citas page (API exists but no UI)
+- No service catalog (hardcoded en BookingSection)
+- No email (no Resend integration)
+- No cron reminders
+- No metrics dashboard
+- Admin: no reschedule/complete/no-show from agenda
+- No booking_settings table (cancellation rules hardcoded nowhere)
+- No copy-week feature
+
+What is broken or missing:
+- Status enum only has confirmed/cancelled (blocks new states)
+- RLS insert policy blocks multiple bookings per user (intentional but changing this phase)
+- WhatsApp helper duplicated inline (AgendaSlotRow)
+
+## Technical debt detected
+- appointments CHECK constraint must be expanded before deploying new status values
+- appointments_insert_authenticated_one_active RLS policy must be dropped before multiple bookings work
+- Both are in migration 003 — must run before any code deploy
