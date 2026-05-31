@@ -94,8 +94,11 @@ export default function MisCitasCard({
   const [cancelOpen, setCancelOpen] = useState(false)
   const [rescheduleOpen, setRescheduleOpen] = useState(false)
 
-  const statusCfg = STATUS_CONFIG[appointment.status]
   const upcoming = isUpcoming(appointment)
+  const isPastConfirmed = appointment.status === 'confirmed' && !upcoming
+  const statusCfg = isPastConfirmed
+    ? { label: 'Pasada', bg: 'rgba(255,255,255,0.05)', color: '#7A7268' }
+    : STATUS_CONFIG[appointment.status]
   const canCancel     = upcoming && canAct(appointment, cancelHoursBefore)
   const canReschedule = upcoming && canAct(appointment, rescheduleHoursBefore)
   const showWhatsAppCancel = upcoming && !canCancel
