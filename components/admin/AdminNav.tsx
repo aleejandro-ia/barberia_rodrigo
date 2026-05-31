@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import { CalendarDots, Images, Clock, SignOut, ArrowLeft, Scissors, Gear } from '@phosphor-icons/react'
 
 const navLinks = [
-  { href: '/admin',          label: 'Agenda',   Icon: CalendarDots },
+  { href: '/admin/agenda',    label: 'Agenda',   Icon: CalendarDots },
   { href: '/admin/services', label: 'Servicios', Icon: Scissors },
   { href: '/admin/media',    label: 'Media',     Icon: Images },
   { href: '/admin/schedule', label: 'Horarios',  Icon: Clock },
@@ -45,10 +45,7 @@ export default function AdminNav() {
             {/* Desktop nav links — hidden on mobile */}
             <div className="hidden md:flex items-center gap-1">
               {navLinks.map((link) => {
-                const isActive =
-                  link.href === '/admin'
-                    ? pathname === '/admin'
-                    : pathname.startsWith(link.href)
+                const isActive = pathname.startsWith(link.href)
                 return (
                   <Link
                     key={link.href}
@@ -110,10 +107,7 @@ export default function AdminNav() {
       >
         <div className="flex h-[60px]">
           {navLinks.map((link) => {
-            const isActive =
-              link.href === '/admin'
-                ? pathname === '/admin'
-                : pathname.startsWith(link.href)
+            const isActive = pathname.startsWith(link.href)
             return (
               <Link
                 key={link.href}
