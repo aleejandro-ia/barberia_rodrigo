@@ -97,10 +97,18 @@ export async function cancelAppointment(appointmentId: string) {
   const hoursUntil = (apptDT.getTime() - Date.now()) / (1000 * 60 * 60)
   if (hoursUntil < settings.cancel_hours_before) return { error: 'CANCEL_TOO_LATE' as const }
 
-  await supabase.from('appointments').update({
-    status: 'cancelled_by_client',
-    cancelled_at: new Date().toISOString(),
-  }).eq('id', appointmentId)
+  const { data: updated, error: updateError } = await supabase
+    .from('appointments')
+    .update({
+      status: 'cancelled_by_client',
+      cancelled_at: new Date().toISOString(),
+    })
+    .eq('id', appointmentId)
+    .select('id')
+
+  if (updateError || !updated || updated.length === 0) {
+    return { error: 'UPDATE_FAILED' as const }
+  }
 
   // Email (optional — degrades gracefully)
   try {
@@ -173,16 +181,24 @@ export async function rescheduleAppointment(
   if (taken) return { error: 'SLOT_TAKEN' as const }
 
   // UPDATE in-place — old slot is freed automatically
-  await supabase.from('appointments').update({
-    slot_date: newSlot.slot_date,
-    slot_start_time: newSlot.slot_start_time,
-    slot_end_time: newSlot.slot_end_time,
-    rescheduled_at: new Date().toISOString(),
-    previous_slot_date: appt.slot_date,
-    previous_slot_start_time: appt.slot_start_time,
-    reminder_24h_sent_at: null,
-    reminder_2h_sent_at: null,
-  }).eq('id', appointmentId)
+  const { data: updated, error: updateError } = await supabase
+    .from('appointments')
+    .update({
+      slot_date: newSlot.slot_date,
+      slot_start_time: newSlot.slot_start_time,
+      slot_end_time: newSlot.slot_end_time,
+      rescheduled_at: new Date().toISOString(),
+      previous_slot_date: appt.slot_date,
+      previous_slot_start_time: appt.slot_start_time,
+      reminder_24h_sent_at: null,
+      reminder_2h_sent_at: null,
+    })
+    .eq('id', appointmentId)
+    .select('id')
+
+  if (updateError || !updated || updated.length === 0) {
+    return { error: 'UPDATE_FAILED' as const }
+  }
 
   revalidatePath('/')
   revalidatePath('/mis-citas')

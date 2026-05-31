@@ -86,6 +86,7 @@ export default function RescheduleModal({
           SLOT_NOT_FOUND: 'El horario seleccionado ya no está disponible.',
           SLOT_TAKEN: 'El horario seleccionado acaba de ser reservado. Elige otro.',
           VALIDATION_ERROR: 'Datos inválidos.',
+          UPDATE_FAILED:       'No se pudo reagendar. Inténtalo de nuevo.',
         }
         if (result.error === 'SLOT_TAKEN') {
           setRefreshKey((k) => k + 1)

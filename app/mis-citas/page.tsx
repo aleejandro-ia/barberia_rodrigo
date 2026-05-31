@@ -242,6 +242,8 @@ export default function MisCitasPage() {
               whatsappRescheduleMsg={settings.whatsapp_reschedule_msg}
               businessName={settings.business_name}
               onRefresh={fetchAppointments}
+              cancelHoursBefore={settings.cancel_hours_before ?? 3}
+              rescheduleHoursBefore={settings.reschedule_hours_before ?? 3}
             />
           </section>
         )}
@@ -266,6 +268,8 @@ export default function MisCitasPage() {
                   whatsappRescheduleMsg={settings.whatsapp_reschedule_msg}
                   businessName={settings.business_name}
                   onRefresh={fetchAppointments}
+                  cancelHoursBefore={settings.cancel_hours_before ?? 3}
+                  rescheduleHoursBefore={settings.reschedule_hours_before ?? 3}
                 />
               ))}
             </div>

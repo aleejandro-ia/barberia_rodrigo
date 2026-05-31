@@ -44,6 +44,7 @@ export default function CancelConfirmModal({
           NOT_OWNER: 'No tienes permiso.',
           ALREADY_CANCELLED: 'Esta cita ya fue cancelada.',
           CANCEL_TOO_LATE: 'Ya no es posible cancelar con tan poca antelación.',
+          UPDATE_FAILED:    'No se pudo cancelar. Inténtalo de nuevo.',
         }
         toast.error((result.error ? msgs[result.error] : undefined) ?? 'Error al cancelar la cita.')
       } else {

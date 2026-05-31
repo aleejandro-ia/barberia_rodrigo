@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { sendReminderEmail } from '@/lib/email/resend'
 
@@ -11,17 +10,22 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  // Need service role to fetch user emails
+  // Need service role for all DB ops (no user session in cron context)
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!serviceRoleKey) {
     console.warn('[cron/reminders] SUPABASE_SERVICE_ROLE_KEY not set — skipping')
     return NextResponse.json({ processed24h: 0, processed2h: 0 })
   }
 
-  const supabase = await createClient()
+  // Single admin client — service role bypasses RLS for all DB ops
+  const supabaseAdmin = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    serviceRoleKey,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
 
-  // Read reminder settings
-  const { data: settingsRows } = await supabase
+  // Read reminder settings (booking_settings has public SELECT, but service role works too)
+  const { data: settingsRows } = await supabaseAdmin
     .from('booking_settings')
     .select('key, value')
     .in('key', ['reminders_enabled', 'reminder_24h_enabled', 'reminder_2h_enabled', 'business_name'])
@@ -34,14 +38,6 @@ export async function GET(req: Request) {
   }
 
   const businessName = s.business_name ?? 'BG Barber'
-
-  // Admin client (service role) for auth.users
-  const supabaseAdmin = createSupabaseClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    serviceRoleKey,
-    { auth: { autoRefreshToken: false, persistSession: false } }
-  )
-
   const now = new Date()
 
   // ─── 24h window ──────────────────────────────────────────────
@@ -51,7 +47,7 @@ export async function GET(req: Request) {
     tomorrow.setDate(tomorrow.getDate() + 1)
     const tomorrowStr = tomorrow.toISOString().split('T')[0]
 
-    const { data: appts24h } = await supabase
+    const { data: appts24h } = await supabaseAdmin
       .from('appointments')
       .select('id, user_id, client_name, slot_date, slot_start_time, slot_end_time, notes')
       .eq('status', 'confirmed')
@@ -73,7 +69,7 @@ export async function GET(req: Request) {
           business: businessName,
         }, '24h')
 
-        await supabase
+        await supabaseAdmin
           .from('appointments')
           .update({ reminder_24h_sent_at: new Date().toISOString() })
           .eq('id', appt.id)
@@ -93,7 +89,7 @@ export async function GET(req: Request) {
     const in2hTime = in2h.toTimeString().slice(0, 5)
     const nowTime  = now.toTimeString().slice(0, 5)
 
-    const { data: appts2h } = await supabase
+    const { data: appts2h } = await supabaseAdmin
       .from('appointments')
       .select('id, user_id, client_name, slot_date, slot_start_time, slot_end_time, notes')
       .eq('status', 'confirmed')
@@ -117,7 +113,7 @@ export async function GET(req: Request) {
           business: businessName,
         }, '2h')
 
-        await supabase
+        await supabaseAdmin
           .from('appointments')
           .update({ reminder_2h_sent_at: new Date().toISOString() })
           .eq('id', appt.id)

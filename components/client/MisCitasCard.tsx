@@ -75,6 +75,8 @@ interface MisCitasCardProps {
   whatsappRescheduleMsg?: string
   businessName?: string
   onRefresh: () => void
+  cancelHoursBefore?: number
+  rescheduleHoursBefore?: number
 }
 
 export default function MisCitasCard({
@@ -85,6 +87,8 @@ export default function MisCitasCard({
   whatsappRescheduleMsg = 'Hola, me gustaría cambiar mi cita.',
   businessName = 'BG Barber',
   onRefresh,
+  cancelHoursBefore = 3,
+  rescheduleHoursBefore = 3,
 }: MisCitasCardProps) {
   const [appointment] = useState(initialAppointment)
   const [cancelOpen, setCancelOpen] = useState(false)
@@ -92,8 +96,8 @@ export default function MisCitasCard({
 
   const statusCfg = STATUS_CONFIG[appointment.status]
   const upcoming = isUpcoming(appointment)
-  const canCancel = upcoming && canAct(appointment, 3)
-  const canReschedule = upcoming && canAct(appointment, 3)
+  const canCancel     = upcoming && canAct(appointment, cancelHoursBefore)
+  const canReschedule = upcoming && canAct(appointment, rescheduleHoursBefore)
   const showWhatsAppCancel = upcoming && !canCancel
   const showWhatsAppReschedule = upcoming && !canReschedule
 
