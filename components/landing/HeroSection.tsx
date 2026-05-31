@@ -53,7 +53,7 @@ export default function HeroSection({ heroImage }: HeroSectionProps) {
             className="flex items-center gap-3 mb-8"
           >
             <div className="h-px w-8" style={{ backgroundColor: '#C9A96E' }} />
-            <span className="text-sm font-medium uppercase tracking-[0.2em]" style={{ color: '#C9A96E' }}>BG Barber</span>
+            <span className="text-meta" style={{ color: '#C9A96E' }}>BG Barber</span>
           </motion.div>
 
           <motion.h1
@@ -74,8 +74,8 @@ export default function HeroSection({ heroImage }: HeroSectionProps) {
             transition={{ duration: 0.8, delay: 0.24, ease }}
             className="mt-6 flex flex-col gap-1"
           >
-            <p className="text-lg font-medium" style={{ color: '#B0A898' }}>El carisma se entiende como la calidad de influir en las personas.</p>
-            <p className="text-base" style={{ color: '#7A7268' }}>Solo cita previa.</p>
+            <p className="text-body font-medium" style={{ color: '#B0A898' }}>El carisma se entiende como la calidad de influir en las personas.</p>
+            <p className="text-body" style={{ color: '#7A7268' }}>Solo cita previa.</p>
           </motion.div>
 
           <motion.div

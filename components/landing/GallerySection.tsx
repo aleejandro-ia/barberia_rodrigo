@@ -42,7 +42,7 @@ export default function GallerySection() {
           className="mb-14 text-center"
         >
           <p
-            className="text-sm font-medium uppercase tracking-[0.25em] mb-4"
+            className="text-meta mb-4"
             style={{ color: '#C9A96E' }}
           >
             Nuestros Trabajos

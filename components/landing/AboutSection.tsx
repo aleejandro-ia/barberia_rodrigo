@@ -108,14 +108,14 @@ export default function AboutSection({ portrait }: AboutSectionProps) {
           transition={{ duration: 1, delay: 0.1, ease }}
           className="flex flex-col"
         >
-          <p className="text-sm font-medium uppercase tracking-[0.25em] mb-2" style={{ color: '#C9A96E' }}>Conoce a</p>
+          <p className="text-meta mb-2" style={{ color: '#C9A96E' }}>Conoce a</p>
           <h2 className="text-section-title" style={{ color: '#F2EDE7' }}>
             Rodrigo Bargueño
           </h2>
           <p className="mt-1" style={{ fontFamily: 'var(--font-dancing)', fontSize: '1.75rem', color: '#C9A96E', lineHeight: 1.4 }}>
             Maestro Barbero
           </p>
-          <p className="mt-7 text-lg leading-relaxed" style={{ color: '#7A7268', maxWidth: '42ch' }}>
+          <p className="mt-7 text-body" style={{ color: '#7A7268', maxWidth: '42ch' }}>
             Barbero en BG Barber. Sin grandes discursos. Cada cliente tiene su estilo y de eso se trata. Trabajo con cita previa para poder dedicarle el tiempo que merece a cada uno.
           </p>
           <p className="mt-5" style={{ fontFamily: 'var(--font-dancing)', fontSize: '2rem', color: '#C9A96E', letterSpacing: '0.02em' }}>

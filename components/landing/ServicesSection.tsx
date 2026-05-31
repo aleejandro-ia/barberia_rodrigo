@@ -112,7 +112,7 @@ export default function ServicesSection() {
           transition={{ duration: 0.7, ease }}
           className="mb-14 text-center"
         >
-          <p className="text-sm font-medium uppercase tracking-[0.25em] mb-4" style={{ color: '#C9A96E' }}>
+          <p className="text-meta mb-4" style={{ color: '#C9A96E' }}>
             Servicios
           </p>
           <h2
@@ -160,10 +160,10 @@ export default function ServicesSection() {
 
               {/* Text */}
               <div className="flex flex-col gap-2">
-                <h3 className="text-lg font-bold tracking-wide" style={{ color: '#F2EDE7' }}>
+                <h3 className="text-xl font-bold tracking-wide" style={{ color: '#F2EDE7' }}>
                   {service.name}
                 </h3>
-                <p className="text-base leading-relaxed" style={{ color: '#7A7268' }}>
+                <p className="text-body" style={{ color: '#7A7268' }}>
                   {service.description}
                 </p>
               </div>

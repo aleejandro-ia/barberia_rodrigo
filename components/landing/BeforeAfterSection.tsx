@@ -58,7 +58,7 @@ export default function BeforeAfterSection() {
           transition={{ duration: 0.7, ease }}
           className="mb-14 text-center"
         >
-          <p className="text-sm font-medium uppercase tracking-[0.25em] mb-4" style={{ color: '#C9A96E' }}>Transformaciones</p>
+          <p className="text-meta mb-4" style={{ color: '#C9A96E' }}>Transformaciones</p>
           <h2 className="text-section-title" style={{ color: '#F2EDE7' }}>
             Antes &amp; Después
           </h2>
