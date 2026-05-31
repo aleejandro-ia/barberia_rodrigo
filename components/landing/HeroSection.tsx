@@ -60,8 +60,8 @@ export default function HeroSection({ heroImage }: HeroSectionProps) {
             initial={shouldReduceMotion ? false : { opacity: 0, y: 32 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.9, delay: 0.1, ease }}
-            className="font-bold leading-[1.05] tracking-tight"
-            style={{ fontSize: 'clamp(3.5rem, 7vw, 6.5rem)', color: '#F2EDE7' }}
+            className="text-display"
+            style={{ color: '#F2EDE7' }}
           >
             El corte{' '}<span style={{ color: '#F2EDE7' }}>que</span>
             <br />

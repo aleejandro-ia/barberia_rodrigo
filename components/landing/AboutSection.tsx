@@ -109,7 +109,7 @@ export default function AboutSection({ portrait }: AboutSectionProps) {
           className="flex flex-col"
         >
           <p className="text-sm font-medium uppercase tracking-[0.25em] mb-2" style={{ color: '#C9A96E' }}>Conoce a</p>
-          <h2 className="font-bold tracking-tight leading-tight" style={{ fontSize: 'clamp(2.5rem, 4vw, 4rem)', color: '#F2EDE7' }}>
+          <h2 className="text-section-title" style={{ color: '#F2EDE7' }}>
             Rodrigo Bargueño
           </h2>
           <p className="mt-1" style={{ fontFamily: 'var(--font-dancing)', fontSize: '1.75rem', color: '#C9A96E', lineHeight: 1.4 }}>

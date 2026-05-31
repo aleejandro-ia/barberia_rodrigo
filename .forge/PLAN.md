@@ -298,6 +298,230 @@ Size: Medium-Large
 Total time range: 1 sesión grande (6-8 horas) o 2 sesiones medianas
 Main risk: AgendaModal crecimiento (muchos modos nuevos en un solo componente) + cron email integration (service_role key + Resend config)
 
+---
+
+# POST-16 — Visual Overhaul + Admin Reorganización
+Generated: 2026-05-31
+Approved discovery: tipografía + calendario landing + admin restructura completa + horarios backend
+
+## Prerequisitos POST-16
+- Fases 0–4 completadas (commit cec29e4 en prod)
+- No migration nueva necesaria (schedule_template va en booking_settings como JSON key)
+
+## Phase Overview POST-16
+
+| Subagente | Scope | Parallel | Archivos propios |
+|---|---|---|---|
+| P16-A | Tipografía — globals + landing headings | [P] todos | globals.css, HeroSection, ServicesSection, AboutSection, BeforeAfterSection, GallerySection |
+| P16-B | Calendario landing — BookingCalendar redesign | [P] todos | BookingCalendar.tsx, BookingSection.tsx |
+| P16-C | Admin nav + nueva estructura de rutas | [P] todos | AdminNav.tsx, layout.tsx, media/page.tsx (nueva), ajustes/page.tsx (nueva), settings→redirect, gallery→redirect, before-after→redirect |
+| P16-D | Admin Agenda mensual | [P] todos | admin/page.tsx, MonthlyCalendarGrid.tsx (nueva), MonthCalNav.tsx (nueva), api/admin/agenda/route.ts, agenda/page.tsx→redirect |
+| P16-G | Admin Horarios — backend + redesign | [P] todos | actions/scheduleTemplate.ts, api/admin/schedule-template/route.ts, ScheduleManager.tsx, schedule/page.tsx |
+
+Todos ejecutan en paralelo — cero archivos compartidos.
+
+---
+
+## Detailed Phases POST-16
+
+### P16-A — Tipografía
+**Subagent:** subagent-p16-typography
+**Parallel:** sí [P] — sin dependencias con otros subagentes
+**Acceptance criteria:**
+- [ ] `app/globals.css`: font-size base HTML de 17px → 19px
+- [ ] `app/globals.css`: utility class `.text-display` → `clamp(2.2rem, 5vw + 0.5rem, 4.5rem)`
+- [ ] `app/globals.css`: utility class `.text-section-title` → `clamp(1.6rem, 3vw + 0.3rem, 2.8rem)`
+- [ ] `app/globals.css`: utility class `.text-subsection` → `clamp(1.1rem, 2vw + 0.2rem, 1.6rem)`
+- [ ] `components/landing/HeroSection.tsx`: heading principal usa `.text-display` o `clamp()` directo, no `text-4xl` fijo
+- [ ] `components/landing/ServicesSection.tsx`: section title usa `.text-section-title`
+- [ ] `components/landing/AboutSection.tsx`: heading usa `.text-section-title`
+- [ ] `components/landing/BeforeAfterSection.tsx`: heading usa `.text-section-title`
+- [ ] `components/landing/GallerySection.tsx`: heading usa `.text-section-title`
+- [ ] Textos con estilo especial ("El corte que te define", dancing script decorativos) → NO tocar
+- [ ] En móvil (375px): headings de sección mínimo 24px visualmente
+- [ ] En desktop (1440px): headings de sección mínimo 40px visualmente
+- [ ] `npx tsc --noEmit` pasa sin errores
+**Files owned:**
+- app/globals.css
+- components/landing/HeroSection.tsx
+- components/landing/ServicesSection.tsx
+- components/landing/AboutSection.tsx
+- components/landing/BeforeAfterSection.tsx
+- components/landing/GallerySection.tsx
+
+---
+
+### P16-B — Calendario Landing
+**Subagent:** subagent-p16-calendar
+**Parallel:** sí [P]
+**Acceptance criteria:**
+- [ ] `components/landing/BookingCalendar.tsx` rediseñado:
+  - [ ] Fondo del calendario: blanco `#FFFFFF` o off-white `#F8F5F0`
+  - [ ] Texto de días: oscuro `#1a1814` o similar, legible sobre fondo claro
+  - [ ] Días disponibles (con slots libres): accent gold `#C9A96E` en número del día o underline
+  - [ ] Día seleccionado: fill `#C9A96E` con texto oscuro
+  - [ ] Días sin slots / pasados: gris claro `#C0B9AF` o similar, no clickable
+  - [ ] Headers de semana (L M X J V S D): texto gris oscuro `#7A7268`
+  - [ ] Navegación mes anterior/siguiente: botones visibles sobre fondo claro
+  - [ ] Border-radius del contenedor: 20px mínimo, sombra suave
+  - [ ] En móvil: calendario ocupa 100% del ancho disponible, sin overflow
+  - [ ] En desktop: calendario no excede 400px de ancho
+- [ ] `components/landing/BookingSection.tsx`:
+  - [ ] Contenedor del calendario tiene suficiente padding para que el fondo claro contraste bien con el fondo oscuro `#0E0B08` de la página
+  - [ ] Step machine (date→slot→form→confirmed) funciona igual que antes
+  - [ ] Sin bugs visuales al navegar entre meses
+- [ ] Flujo de reserva completo funciona: seleccionar fecha → ver slots → reservar
+- [ ] `npx tsc --noEmit` pasa
+**Files owned:**
+- components/landing/BookingCalendar.tsx
+- components/landing/BookingSection.tsx
+
+---
+
+### P16-C — Admin Nav + Estructura de Rutas
+**Subagent:** subagent-p16-admin-nav
+**Parallel:** sí [P]
+**Acceptance criteria:**
+- [ ] `components/admin/AdminNav.tsx` reescrito:
+  - [ ] Desktop (md+): top sticky nav con 5 links: Agenda `/admin` | Servicios `/admin/services` | Media `/admin/media` | Horarios `/admin/schedule` | Ajustes `/admin/ajustes`
+  - [ ] Mobile (<md): top bar muestra solo logo + "Panel Admin" + botón salir; bottom tab bar fijo con los mismos 5 links (iconos + labels cortos)
+  - [ ] Bottom tab bar: posición `fixed bottom-0 left-0 right-0 z-50`, altura mínima 60px, safe area en iOS (`pb-safe` o `padding-bottom: env(safe-area-inset-bottom)`)
+  - [ ] Active state correcto en ambas navs (top y bottom)
+  - [ ] Link "Volver al sitio" y "Salir" presentes en desktop, accesibles en mobile (top bar)
+- [ ] `app/admin/layout.tsx` modificado:
+  - [ ] Main content tiene `pb-20 md:pb-0` para no quedar tapado por bottom tab bar en mobile
+- [ ] `app/admin/media/page.tsx` creado:
+  - [ ] Página funcional con tabs: "Galería" | "Antes / Después" | "Imágenes del sitio"
+  - [ ] Tab Galería: renderiza `<GalleryManager />` (importado de components/admin/GalleryManager.tsx)
+  - [ ] Tab Antes/Después: renderiza `<BeforeAfterManager />` (importado de components/admin/BeforeAfterManager.tsx)
+  - [ ] Tab Imágenes del sitio: renderiza `<SettingsManager />` (importado, pero solo la parte de imágenes — hero + portrait)
+  - [ ] Tabs son botones visibles, active tab highlight con gold
+  - [ ] En mobile: tabs con scroll horizontal si necesario, nunca overflow
+- [ ] `app/admin/ajustes/page.tsx` creado:
+  - [ ] Contiene TODA la lógica de settings actual: estado sistema + reglas reservas + recordatorios + visibilidad secciones (gallery_enabled, before_after_enabled)
+  - [ ] Importa y usa los mismos fetches/actions que la settings page actual
+  - [ ] Mismo estilo visual que el resto del admin
+- [ ] `app/admin/settings/page.tsx` → redirect HTTP 308 a `/admin/ajustes` (usando `redirect()` de next/navigation) o `<Redirect>` component
+- [ ] `app/admin/gallery/page.tsx` → redirect a `/admin/media`
+- [ ] `app/admin/before-after/page.tsx` → redirect a `/admin/media`
+- [ ] En mobile (375px): bottom tab bar labels no se cortan, iconos tamaño mínimo 20px
+- [ ] Tap en tab navega correctamente, no requiere doble tap
+- [ ] `npx tsc --noEmit` pasa
+**Files owned:**
+- components/admin/AdminNav.tsx
+- app/admin/layout.tsx
+- app/admin/media/page.tsx (crear)
+- app/admin/ajustes/page.tsx (crear)
+- app/admin/settings/page.tsx (redirect only)
+- app/admin/gallery/page.tsx (redirect only)
+- app/admin/before-after/page.tsx (redirect only)
+
+---
+
+### P16-D — Admin Agenda Mensual
+**Subagent:** subagent-p16-agenda
+**Parallel:** sí [P]
+**Acceptance criteria:**
+- [ ] `app/admin/page.tsx` reescrito completamente:
+  - [ ] Cabecera: resumen numérico (citas confirmadas hoy + esta semana, calculado del mismo fetch de agenda)
+  - [ ] Navegación mes: botones ← mes anterior / mes siguiente / "Hoy"
+  - [ ] Grid mensual 7 columnas (L M X J V S D): renderiza todos los días del mes visible
+  - [ ] Cada celda de día: número del día + si tiene citas → dot gold + count badge
+  - [ ] Días sin slots ni citas → celda vacía con número en gris
+  - [ ] Día seleccionado → highlighted con borde gold
+  - [ ] Clic en día → `selectedDate` state se actualiza → panel de día se muestra
+  - [ ] Panel de día (debajo del grid en mobile, lateral sticky en desktop lg+):
+    - [ ] Header: fecha en formato largo ("Jueves, 4 de junio")
+    - [ ] Lista de slots del día usando `<AgendaSlotRow />` (reutilizado tal cual)
+    - [ ] Botón "Añadir franja" → abre `<AgendaModal mode=bulk-creator>` para ese día
+    - [ ] Si no hay slots: mensaje "Sin franjas este día" + botón crear
+  - [ ] `<AgendaModal />` y `<AgendaDayPanel />` reutilizados sin modificación
+  - [ ] Toda la funcionalidad de crear/editar/bloquear/cancelar slots se mantiene
+- [ ] `components/admin/agenda/MonthlyCalendarGrid.tsx` creado:
+  - [ ] Props: `{ days: AgendaDay[], selectedDate: string|null, onSelectDate: (date:string)=>void, month: Date }`
+  - [ ] Grid 7 columnas, filas = semanas del mes
+  - [ ] Días del mes anterior/siguiente: mostrar en gris muy tenue (no clickables)
+  - [ ] Mobile: cada celda mínimo 44×44px, texto legible
+  - [ ] No hace overflow horizontal en ningún viewport
+- [ ] `components/admin/agenda/MonthCalNav.tsx` creado:
+  - [ ] Props: `{ currentMonth: Date, onPrev: ()=>void, onNext: ()=>void, onToday: ()=>void }`
+  - [ ] Muestra "Mayo 2026" o similar, botones flecha + "Hoy"
+- [ ] `app/api/admin/agenda/route.ts` modificado:
+  - [ ] Límite de 14 días eliminado → acepta hasta 31 días (1 mes)
+  - [ ] Validación de rango: si `to - from > 31 días`, devuelve 400
+- [ ] `app/admin/agenda/page.tsx` → redirect a `/admin`
+- [ ] En desktop (1024px+): grid mes a la izquierda, panel día sticky derecha (2 columnas)
+- [ ] En mobile: grid mes arriba, panel día debajo (scroll normal)
+- [ ] `npx tsc --noEmit` pasa
+**Files owned:**
+- app/admin/page.tsx
+- components/admin/agenda/MonthlyCalendarGrid.tsx (crear)
+- components/admin/agenda/MonthCalNav.tsx (crear)
+- app/api/admin/agenda/route.ts
+- app/admin/agenda/page.tsx (redirect only)
+
+---
+
+### P16-G — Admin Horarios Backend + Redesign
+**Subagent:** subagent-p16-schedule
+**Parallel:** sí [P]
+**Acceptance criteria:**
+- [ ] `actions/scheduleTemplate.ts` creado:
+  - [ ] `getScheduleTemplate()` → lee `booking_settings` key `schedule_template` → parsea JSON → devuelve `{ day, start_time, end_time }[]` o `[]` si vacío
+  - [ ] `saveScheduleTemplate(template)` → valida (day 0-6, HH:MM, end>start) → escribe en booking_settings como JSON → revalida `/admin/schedule`
+  - [ ] `generateSlotsFromTemplate(startDate: string, weeks: number)` → lee template → para cada fecha en rango → si día-semana coincide → inserta slots de 30 min (startTime to endTime) → ON CONFLICT DO NOTHING → devuelve `{ created, skipped }`
+- [ ] `app/api/admin/schedule-template/route.ts` creado:
+  - [ ] GET: admin only → llama getScheduleTemplate() → 200 `{ template }`
+  - [ ] 401 si no admin
+- [ ] `components/admin/ScheduleManager.tsx` rediseñado:
+  - [ ] **Sección 1 — Mini calendario**: muestra mes actual con dots en días que ya tienen availability_slots (fetch `/api/admin/agenda?from=&to=` primer día del mes al último)
+  - [ ] Navegación mes en mini calendario
+  - [ ] **Sección 2 — Plantilla semanal**: 7 checkboxes (Lunes…Domingo) + para cada día activado: time picker start + end
+  - [ ] Botón "Guardar plantilla" → llama saveScheduleTemplate
+  - [ ] **Sección 3 — Generador**: date picker "Desde" + selector "Semanas" (1-12) + botón "Generar franjas" → llama generateSlotsFromTemplate → toast con resultado `"X franjas creadas, Y ya existían"`
+  - [ ] **Sección 4 — Creación manual**: bulk creator existente (`<SlotBulkCreator />`) para crear franjas de un día específico
+  - [ ] En mobile: secciones apiladas verticalmente, inputs mínimo 44px de alto
+  - [ ] Botones de acción min 44px de alto en mobile
+- [ ] `app/admin/schedule/page.tsx` actualizado para usar nuevo ScheduleManager
+- [ ] La generación de slots no rompe slots existentes (ON CONFLICT DO NOTHING)
+- [ ] Toast de resultado visible en mobile y desktop
+- [ ] `npx tsc --noEmit` pasa
+**Files owned:**
+- actions/scheduleTemplate.ts (crear)
+- app/api/admin/schedule-template/route.ts (crear)
+- components/admin/ScheduleManager.tsx
+- app/admin/schedule/page.tsx
+
+---
+
+## Dependency graph POST-16
+```
+Todos paralelos — sin dependencias entre sí
+P16-A ─┐
+P16-B ─┤
+P16-C ─┼── ejecutar simultáneamente → merge → verify + deploy
+P16-D ─┤
+P16-G ─┘
+```
+
+## Notas de solapes resueltos
+- Citas+Agenda: /admin/agenda desaparece (redirect), /admin absorbe toda la funcionalidad
+- Galería+Antes/Después+Imágenes: todo en /admin/media con tabs
+- Settings caótico: se divide en /admin/media (fotos) + /admin/ajustes (configuración)
+- Nav 7 ítems → 5 ítems limpios, bottom tab bar en mobile
+
+## Notas responsive (requisito crítico)
+- Bottom tab bar: safe area inset en iOS, no tapa contenido
+- Calendarios (landing + admin mensual): sin overflow horizontal, celdas mínimo 44×44px
+- Todos los botones de acción: mínimo 44px alto en mobile (táctil)
+- Ningún elemento con width fijo > 375px
+- clamp() en tipografía: nunca rompe en 320px ni en 2560px
+
+## Total estimate POST-16
+Size: Large (puro diseño/UX + 1 pieza backend)
+Parallel execution: 5 subagentes simultáneos
+Main risk: P16-C (nav restructura con bottom bar + redirects) + P16-D (agenda mensual desde cero)
+
 ## Dependency graph
 ```
 prereqs

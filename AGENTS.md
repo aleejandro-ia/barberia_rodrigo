@@ -1,78 +1,96 @@
-# Barbería BG Barber — Agent Context
-# Last updated: 2026-05-30 18:00
+# BG Barber — Agent Context
+# Last updated: 2026-05-31 (POST-16 complete)
 # READ THIS ENTIRE FILE before doing anything in this project.
 
 ## What is this project
-App de reservas premium para la barbería BG Barber de Rodrigo Bargueño. Landing page dark/gold con hero, about, servicios, galería infinita (marquee), antes/después y reserva online con step machine y service select. Admin panel premium: citas, galería, horarios, antes/después, imágenes + agenda semanal con gestión de slots y citas manuales (walk-in). Stack: Next.js 16 + Supabase + Tailwind v4 + Vercel. GitHub auto-deploy: push a main → https://barberia-rodrigo.vercel.app
+BG Barber es un SaaS de reservas para peluquerías, con Rodrigo como instancia piloto. Clientes reservan via landing page con Google OAuth. Admin (Rodrigo) gestiona disponibilidad, citas, servicios y configuración desde /admin. Stack: Next.js 16 App Router + TypeScript + Tailwind v4 + Supabase + Vercel.
 
 ## Current State
-Todas las fases completas + Admin Agenda Phase 1 completa (commit 95386da). Sin bugs.
-POST-12 (Cliente Premium) especificado y pendiente de ejecución.
+POST-16 completo (tsc 0 errores, commit pendiente). Sistema funcional en prod (cec29e4). POST-16 añade: tipografía fluid clamp(), calendario landing light-on-dark, admin nav 5 secciones + mobile bottom tab bar iOS, agenda mensual en /admin, backend de horarios con plantilla semanal + generador de slots.
+Full detail: see .forge/PROGRESS.md
 
 ## EXACT NEXT STEP
-Ejecutar POST-12 — spec completo en `.forge/NEXT_PHASE_SPEC.md`.
-Orden: (1) SQL migration 003 en Supabase (proyecto tfnihyxspgtlnlykkxdn) → (2) types/index.ts → (3) lib helpers → (4) actions → (5) componentes cliente → (6) admin agenda updates → (7) tsc --noEmit → (8) push.
+POST-16 listo para deploy. Ejecutar git commit + push → verificar Vercel build → smoke test visual en prod.
+Específico: `git add -A && git commit -m "POST-16: visual overhaul + admin reorganization + horarios backend" && git push origin main`
+Smoke test: /admin (monthly grid), /admin/media (3 tabs), /admin/ajustes (settings), /admin/schedule (4 sections), mobile bottom bar, landing calendar (light background), landing headings bigger.
 
 ## Tech Stack
-- Framework: Next.js 16 App Router (TypeScript)
-- Database: Supabase PostgreSQL (ID: tfnihyxspgtlnlykkxdn, eu-west-1)
-- Auth: Supabase Auth — Google OAuth ONLY
-- Storage: Supabase Storage — gallery, before-after, site-images (todos públicos)
-- Styling: Tailwind v4. Paleta: #0E0B08 bg, #161310 cards, #C9A96E gold, #F2EDE7 warm white
-- Fonts: Plus Jakarta Sans (UI, var --font-outfit, base 17px), Dancing Script (firma)
-- Animation: Motion (motion/react)
+- Framework: Next.js 16 App Router (proxy.ts NO middleware.ts)
+- Database: Supabase PostgreSQL — RLS en todas las tablas
+- Auth: Supabase Auth Google OAuth only — isAdmin() en lib/auth.ts
+- Styling: Tailwind v4 — paleta dark gold (#0E0B08, #C9A96E, #F2EDE7)
+- Font: Plus Jakarta Sans (next/font/google) — base 19px
 - Icons: @phosphor-icons/react
-- Deploy: Vercel, proyecto barberia-rodrigo — GitHub aleejandro-ia/barberia_rodrigo → auto-deploy main
+- Animation: motion/react
+- Email: Resend SDK (graceful degradation)
+- Deploy: Vercel auto-deploy on push to main
 
 ## Important Files
-proxy.ts — middleware Next.js 16 (NO crear middleware.ts — rompe routing)
-lib/auth.ts — isAdmin() → hardcoded a alejandronopez@gmail.com
-app/layout.tsx — Plus Jakarta Sans + Dancing Script, bg #0E0B08
-app/globals.css — Tailwind v4, font-size: 17px en html
-app/auth/callback/route.ts — OAuth callback: exchangeCodeForSession, redirect a next param
-app/api/availability/dates/route.ts — fechas disponibles (filtra fechas completamente llenas)
-app/api/availability/slots/route.ts — slots disponibles para una fecha
-app/api/admin/agenda/route.ts — GET ?from&to → AgendaDay[] (slots + citas join en memoria)
-app/admin/agenda/page.tsx — Admin Agenda: weekStart state, fetchWeek, grid lg:[1fr_380px]
-components/landing/GalleryCarousel.tsx — infinite marquee belt (RAF, triple array, drag+inercia)
-components/landing/BookingSection.tsx — step machine + OAuth sessionStorage recovery + service <select>
-components/landing/BookingCalendar.tsx — calendario, maxMonth 3 meses adelante
-components/landing/TimeSlotPicker.tsx — slots con refreshKey prop + duración
-components/landing/AboutSection.tsx — ⚠️ HYDRATION BUG en TICKS array (Math.cos/sin floats)
-components/admin/AdminNav.tsx — nav: Citas/Agenda/Galería/etc + "← Volver al sitio"
-components/admin/agenda/AgendaSlotRow.tsx — workhorse fila slot: estados visual + hover actions + walk-in badge
-components/admin/agenda/AgendaModal.tsx — modal discriminated union: 7 modos (closed/create-appt/edit-appt/cancel-appt/block-slot/edit-slot-times/bulk-creator)
-actions/agenda.ts — adminCreateAppointment, adminEditAppointment, adminToggleSlotBlock, adminEditSlotTimes
-actions/appointments.ts — bookAppointment, adminCancelAppointment (reutilizado desde AgendaModal)
-supabase/migrations/002_agenda_phase1.sql — nullable user_id, partial unique index, blocked_reason, RLS admin insert
+proxy.ts — middleware Next.js 16 (NO tocar — convención Next.js 16 usa proxy.ts no middleware.ts)
+lib/auth.ts — isAdmin() → alejandronopez@gmail.com
+lib/supabase/server.ts — createClient() anon key con cookies (sujeto a RLS)
+lib/supabase/admin.ts — supabaseAdmin service_role (bypasa RLS) — usar para ops sin sesión
+types/index.ts — todos los tipos: AppointmentStatus (7 valores), Appointment, BookingSettings, Service, AgendaDay, AgendaSlot
+app/globals.css — Tailwind v4, font-size 19px, .text-display .text-section-title .text-subsection clamp()
+components/admin/AdminNav.tsx — 5-item nav, desktop top + mobile bottom tab bar con iOS safe-area
+app/admin/layout.tsx — pb-20 md:pb-10 en main para bottom tab bar
+app/admin/page.tsx — monthly calendar grid, AgendaDayPanel lateral, AgendaModal
+app/admin/media/page.tsx — NUEVA: Galería + Antes/Después + Imágenes del sitio (3 tabs)
+app/admin/ajustes/page.tsx — NUEVA: Estado sistema + Reglas reservas + Recordatorios
+app/admin/schedule/page.tsx — wraps ScheduleManager (4 secciones)
+components/admin/ScheduleManager.tsx — 4 secciones: franjas/día + plantilla semanal + generador + manual
+components/admin/agenda/MonthlyCalendarGrid.tsx — NUEVA: 7-col monthly grid, weekStartsOn:1
+components/admin/agenda/MonthCalNav.tsx — NUEVA: prev/next/hoy navigation
+actions/scheduleTemplate.ts — NUEVO: getScheduleTemplate, saveScheduleTemplate, generateSlotsFromTemplate
+app/api/admin/schedule-template/route.ts — NUEVO: GET admin-only
+app/api/admin/agenda/route.ts — GET agenda admin, límite 31 días
+components/landing/BookingCalendar.tsx — redesigned: #F8F5F0 bg, gold accents
+actions/appointments.ts — cancelAppointment + rescheduleAppointment con .select('id')
+actions/agenda.ts — adminCreate/Edit/ToggleBlock/EditSlotTimes/Reschedule/NoShow/Completed/CopyWeek
+actions/bookingSettings.ts — getBookingSettings(), updateBookingSetting()
+vercel.json — cron schedule 0 8 * * *
+supabase/migrations/004_fix_rls_update.sql — última migration aplicada en prod (NO crear más sin confirmar)
 
 ## API Contracts
-See .forge/CONTRACTS.md
+See .forge/CONTRACTS.md — do not deviate from these contracts
+
+## Critical Patterns
+- Cron / ops sin sesión: usar supabaseAdmin (service_role), NUNCA createClient()
+- RLS UPDATE: SIEMPRE WITH CHECK explícito separado del USING
+- Email: lazy init Resend dentro de función, nunca top-level de módulo
+- Server actions → createClient() (anon, cookies). API routes sin auth → supabaseAdmin
+- booking_settings: key-value store. schedule_template guardado como JSON string bajo key 'schedule_template'
+- Admin nav: 5 secciones fijas (Agenda/Servicios/Media/Horarios/Ajustes) — NO añadir más sin redesign
+- Bottom tab bar: env(safe-area-inset-bottom) en style (no Tailwind pb-safe)
 
 ## Do NOT touch
-proxy.ts — Next.js 16 usa proxy.ts, NO middleware.ts
-supabase/migrations/ — solo via SQL editor de Supabase MCP
-.env.local — credenciales reales, no commitear
+- proxy.ts — Next.js 16 middleware convention
+- supabase/migrations/ — no modificar migrations ya aplicadas
+- lib/auth.ts isAdmin() — hardcoded email
+- components/admin/agenda/AgendaDayPanel.tsx — no modificar (reutilizado por monthly grid)
+- components/admin/agenda/AgendaModal.tsx — no modificar (reutilizado, 11 modos)
 
-## Booking System Logic
-Step machine: 'date' → 'slot' → 'form' → 'confirmed' | 'blocked'
-OAuth recovery: sessionStorage key 'bgbarber_pending_booking' = {date, slot}
-  Guardado en handleSelectSlot si !user → restaurado en onAuthStateChange SIGNED_IN event
-Active booking check: query Supabase en onAuthStateChange → step 'blocked' si hay cita futura
-SLOT_TAKEN error → setSlotRefreshKey(k+1) → TimeSlotPicker re-fetch → slot desaparece
-Service select: SERVICES array = [Corte Clásico 7€, Corte 9€, Corte con Barba 10€] — guardado en columna notes
+## DB Migration Status
+- 001_initial_schema.sql ✅ aplicada
+- 002_agenda_phase1.sql ✅ aplicada
+- 003_client_premium.sql ✅ aplicada
+- 004_fix_rls_update.sql ✅ aplicada (Supabase project: tfnihyxspgtlnlykkxdn)
+- No migration necesaria para POST-16 (schedule_template usa booking_settings existente)
 
-## Admin Agenda Logic
-Week view: startOfWeek(date, {weekStartsOn: 1}) — lunes. Fetch via /api/admin/agenda?from&to.
-AgendaDay counts: confirmedCount, blockedCount, freeCount, totalSlots.
-AgendaSlotRow estados: libre (gold) / confirmado (green) / bloqueado (diagonal stripes) / cancelado (red-dim).
-Walk-in badge: pill dorado si appt.user_id === null.
-WhatsApp: https://wa.me/34{phone}?text=Hola {name}...
-AgendaModal discriminated union — modo 'bulk-creator' reutiliza SlotBulkCreator existente.
-adminCancelAppointment importado de actions/appointments.ts (no duplicar en actions/agenda.ts).
+## Env Vars requeridas
+NEXT_PUBLIC_SUPABASE_URL — ya configurada
+NEXT_PUBLIC_SUPABASE_ANON_KEY — ya configurada
+ADMIN_EMAIL — ya configurada
+RESEND_API_KEY — opcional (email degrada sin ella)
+RESEND_FROM_EMAIL — opcional
+SUPABASE_SERVICE_ROLE_KEY — necesaria para cron reminders
+CRON_SECRET — necesaria para proteger /api/cron/reminders
 
 ## FORGE Documents
-- .forge/PROGRESS.md — estado vivo (más importante)
-- .forge/PROJECT_BRIEF.md, PLAN.md, CONTRACTS.md, DATA_MODEL.md
+- .forge/PROJECT_BRIEF.md — requisitos y decisiones técnicas
+- .forge/PLAN.md — plan de fases
+- .forge/CONTRACTS.md — contratos API
+- .forge/DATA_MODEL.md — schema de base de datos
+- .forge/SKILL_SELECTION.md — skills asignadas por fase
 - .forge/DECISIONS.md — registro de decisiones
-- .claude/napkin.md — errores y patrones aprendidos
+- .forge/PROGRESS.md — estado live del proyecto (más importante)

@@ -159,6 +159,33 @@ interface BookingSettings {
 }
 ```
 
+---
+
+## POST-16 Additions — Visual Overhaul + Horarios Backend
+
+### GET /api/admin/schedule-template (NEW)
+Returns saved weekly schedule template. Auth: admin.
+Response 200: { template: { day: number, start_time: string, end_time: string }[] }
+Note: `day` is 0=Sunday…6=Saturday. Returns [] if not yet configured.
+
+---
+
+## Server Actions — POST-16 Additions
+
+### saveScheduleTemplate(template) — NEW
+Saves weekly template to booking_settings key `schedule_template` as JSON string.
+Input: { day: number, start_time: string, end_time: string }[]
+Validates: day 0-6, start_time < end_time, HH:MM format.
+Errors: UNAUTHORIZED | VALIDATION_ERROR
+
+### generateSlotsFromTemplate(startDate: string, weeks: number) — NEW
+Reads template from booking_settings. For each date in [startDate, startDate + weeks*7), if day-of-week matches template entry, inserts 30-min availability_slots using bulk creator logic.
+ON CONFLICT (date, start_time) DO NOTHING — skips existing slots.
+Returns: { created: number, skipped: number }
+Errors: UNAUTHORIZED | NO_TEMPLATE | VALIDATION_ERROR
+
+---
+
 ## Error format
 All errors: { error: "ERROR_CODE" }
 All successes: { success: true } or { data/service/appointment: ... }

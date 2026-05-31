@@ -29,6 +29,18 @@
 
 [2026-05-30] Google OAuth ONLY (eliminado phone OTP) — Reason: Usuario confirmó que solo quiere Google OAuth. Phone OTP con Twilio añade coste y complejidad innecesaria para este caso.
 
+[2026-05-31] UPDATE in-place para reprogramación de citas — Reason: RLS INSERT policy bloquea nueva cita confirmed si ya existe una activa. UPDATE evita el conflicto y libera el slot viejo automáticamente. Trazabilidad via previous_slot_date + rescheduled_at.
+
+[2026-05-31] booking_settings como key-value store (no columnas fijas) — Reason: Permite añadir nuevas configuraciones sin migration. Base para multi-tenant futuro donde cada negocio tiene sus propios valores.
+
+[2026-05-31] services.name guardado como text en appointments.notes (sin FK) — Reason: Backwards compatible con citas existentes. Walk-ins pueden tener notas libres. Sin migration de datos históricos.
+
+[2026-05-31] Email con graceful degradation — Reason: Booking no debe fallar si email falla. Todas las funciones comprueban RESEND_API_KEY; sin ella hacen console.warn + return {skipped:true}. Sistema funcional sin email.
+
+[2026-05-31] ALREADY_HAS_BOOKING eliminado — múltiples citas permitidas con warning UI — Reason: Un cliente puede querer reservar para varios días. El bloqueo server era demasiado restrictivo para un negocio real. Warning en UI es suficiente.
+
+[2026-05-31] /api/admin/status retorna booleans only, nunca raw env vars — Reason: Seguridad. El cliente necesita saber si Resend está configurado pero nunca debe ver la API key.
+
 [2026-05-30] GitHub auto-deploy via Vercel Git Integration (no Vercel CLI) — Reason: Vercel CLI token expirado y no instalado localmente. Git integration es más limpio: push a main = deploy automático sin CLI.
 
 [2026-05-30] Admin button en NavBar vía fetch /api/auth/is-admin — Reason: Check server-side del rol. No expone lógica de admin al cliente. NavBar es 'use client' así que no puede usar server actions directamente.
@@ -64,3 +76,23 @@
 [2026-05-30] /api/admin/agenda GET con join en memoria — Reason: Supabase no tiene JOIN cómodo entre slots y appointments con prioridad confirmed>cancelled. Join en memoria tras 2 queries paralelas es más legible y suficientemente performante para rangos de ≤14 días.
 
 [2026-05-30] startOfWeek weekStartsOn:1 (date-fns) para anclar semana al lunes — Reason: Semana laboral en España empieza lunes. Sin weekStartsOn:1 date-fns usa domingo (ISO americano).
+
+[2026-05-31] RLS UPDATE requiere WITH CHECK explícito separado del USING — Reason: Sin WITH CHECK, PostgreSQL hereda USING como post-update check. status='cancelled_by_client' fallaba la condición status='confirmed' del USING → UPDATE bloqueado silenciosamente.
+
+[2026-05-31] Cron usa supabaseAdmin (service_role) para todos los DB ops — Reason: Request de cron de Vercel no tiene cookies de sesión de usuario → auth.uid()=null → is_admin()=false → RLS bloquea todos los SELECT/UPDATE de appointments silenciosamente.
+
+[2026-05-31] /api/booking-settings expone subset seguro de booking_settings — Reason: UI cliente necesita cancel/reschedule hours configurados por admin. Endpoint público con solo las keys necesarias evita exponer settings sensibles o booleanos de estado de servicios.
+
+[2026-05-31] font-size base HTML 17px → 19px + clamp() utilities (.text-display .text-section-title .text-subsection) — Reason: Texto se veía pequeño en desktop. clamp() fluid sin media queries, escala bien en 320px–2560px.
+
+[2026-05-31] BookingCalendar fondo claro (#F8F5F0) sobre página oscura (#0E0B08) — Reason: Contraste premium light-on-dark. Patrón de luxury booking system. Mejora legibilidad.
+
+[2026-05-31] Admin nav 7 ítems → 5 secciones limpias sin solapamiento — Reason: Citas+Agenda solapaban, Gallery+BA+Imágenes eran 3 items para 1 concepto. 5 secciones → cero solapamiento.
+
+[2026-05-31] Mobile admin: bottom tab bar fijo (no hamburger) con iOS env(safe-area-inset-bottom) — Reason: Patrón nativo iOS, ahorra un tap vs hamburger. Safe-area crítica para no ocultar tabs bajo home indicator.
+
+[2026-05-31] /admin absorbe agenda (redirect /admin/agenda → /admin) — agenda mensual reemplaza vista semanal — Reason: Dos vistas de agenda solapaban. Monthly grid en /admin es más útil como home que lista plana.
+
+[2026-05-31] schedule_template en booking_settings como JSON key — Reason: No requiere migration nueva. Encaja en key-value store existente.
+
+[2026-05-31] DAY_ORDER ScheduleManager Lun-Dom display, interno 0-6 Sun=0 — Reason: UX española (lunes primero), consistente con date-fns getDay().

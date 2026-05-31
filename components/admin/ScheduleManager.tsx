@@ -1,7 +1,9 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { deleteAvailabilitySlot } from '@/actions/availability'
+import { getScheduleTemplate, saveScheduleTemplate, generateSlotsFromTemplate } from '@/actions/scheduleTemplate'
+import type { ScheduleEntry } from '@/actions/scheduleTemplate'
 import {
   Dialog,
   DialogContent,
@@ -22,6 +24,10 @@ function todayStr() {
   return new Date().toISOString().split('T')[0]
 }
 
+const DAY_LABELS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
+// Ordered Mon–Sun for display, but day numbers stay 0-6 (Sun=0)
+const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0]
+
 const inputStyle: React.CSSProperties = {
   backgroundColor: '#1C1915',
   border: '1px solid rgba(201,169,110,0.15)',
@@ -31,19 +37,100 @@ const inputStyle: React.CSSProperties = {
   fontSize: '0.875rem',
   outline: 'none',
   width: '100%',
+  minHeight: '44px',
   transition: 'border-color 0.15s',
 }
 
+const focusHandlers = {
+  onFocus: (e: React.FocusEvent<HTMLInputElement>) => (e.target.style.borderColor = 'rgba(201,169,110,0.5)'),
+  onBlur: (e: React.FocusEvent<HTMLInputElement>) => (e.target.style.borderColor = 'rgba(201,169,110,0.15)'),
+}
+
+const labelStyle: React.CSSProperties = {
+  fontSize: '0.75rem',
+  fontWeight: 500,
+  textTransform: 'uppercase',
+  letterSpacing: '0.1em',
+  color: '#7A7268',
+  display: 'block',
+  marginBottom: '0.375rem',
+}
+
+const cardStyle: React.CSSProperties = {
+  backgroundColor: '#161310',
+  border: '1px solid rgba(201,169,110,0.1)',
+  borderRadius: '1rem',
+  padding: '1.5rem',
+}
+
+const sectionTitleStyle: React.CSSProperties = {
+  fontSize: '0.8125rem',
+  fontWeight: 600,
+  textTransform: 'uppercase',
+  letterSpacing: '0.1em',
+  color: '#C9A96E',
+  marginBottom: '1.25rem',
+}
+
 export default function ScheduleManager() {
+  // ── Section 1: slots viewer ──
   const [date, setDate] = useState(todayStr())
   const [slots, setSlots] = useState<Slot[]>([])
   const [slotsLoading, setSlotsLoading] = useState(false)
   const [slotsError, setSlotsError] = useState<string | null>(null)
-
   const [deleteTarget, setDeleteTarget] = useState<Slot | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
 
+  // ── Section 2: weekly template ──
+  const [templateEnabled, setTemplateEnabled] = useState<Record<number, boolean>>({})
+  const [templateStart, setTemplateStart] = useState<Record<number, string>>({})
+  const [templateEnd, setTemplateEnd] = useState<Record<number, string>>({})
+  const [templateLoading, setTemplateLoading] = useState(true)
+  const [savingTemplate, setSavingTemplate] = useState(false)
+
+  // ── Section 3: generator ──
+  const [genStartDate, setGenStartDate] = useState(todayStr())
+  const [genWeeks, setGenWeeks] = useState('4')
+  const [generating, setGenerating] = useState(false)
+
+  // ── Toast ──
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null)
+
+  // Toast auto-dismiss
+  useEffect(() => {
+    if (toast) {
+      const t = setTimeout(() => setToast(null), 3000)
+      return () => clearTimeout(t)
+    }
+  }, [toast])
+
+  // Load template on mount
+  useEffect(() => {
+    async function loadTemplate() {
+      try {
+        const entries = await getScheduleTemplate()
+        const enabled: Record<number, boolean> = {}
+        const starts: Record<number, string> = {}
+        const ends: Record<number, string> = {}
+        for (const entry of entries) {
+          enabled[entry.day] = true
+          starts[entry.day] = entry.start_time
+          ends[entry.day] = entry.end_time
+        }
+        setTemplateEnabled(enabled)
+        setTemplateStart(starts)
+        setTemplateEnd(ends)
+      } catch {
+        // silent — user can still configure manually
+      } finally {
+        setTemplateLoading(false)
+      }
+    }
+    loadTemplate()
+  }, [])
+
+  // ── Section 1 handlers ──
   const fetchSlots = useCallback(async (d: string) => {
     if (!d) return
     setSlotsLoading(true)
@@ -90,36 +177,81 @@ export default function ScheduleManager() {
     }
   }
 
+  // ── Section 2 handler ──
+  async function handleSaveTemplate() {
+    setSavingTemplate(true)
+    const template: ScheduleEntry[] = DAY_ORDER.filter((d) => templateEnabled[d]).map((d) => ({
+      day: d,
+      start_time: templateStart[d] ?? '09:00',
+      end_time: templateEnd[d] ?? '18:00',
+    }))
+    try {
+      const result = await saveScheduleTemplate(template)
+      if ('error' in result) {
+        const msg =
+          result.error === 'UNAUTHORIZED'
+            ? 'Sin permisos de administrador.'
+            : 'Datos inválidos. Verifica los horarios.'
+        setToast({ msg, ok: false })
+      } else {
+        setToast({ msg: 'Plantilla guardada', ok: true })
+      }
+    } catch {
+      setToast({ msg: 'Error al guardar plantilla', ok: false })
+    } finally {
+      setSavingTemplate(false)
+    }
+  }
+
+  // ── Section 3 handler ──
+  async function handleGenerate() {
+    setGenerating(true)
+    try {
+      const result = await generateSlotsFromTemplate(genStartDate, parseInt(genWeeks, 10))
+      if ('error' in result) {
+        const msg =
+          result.error === 'UNAUTHORIZED'
+            ? 'Sin permisos de administrador.'
+            : result.error === 'NO_TEMPLATE'
+              ? 'Primero configura la plantilla semanal.'
+              : 'Datos inválidos.'
+        setToast({ msg, ok: false })
+      } else {
+        setToast({ msg: `${result.created} franjas creadas, ${result.skipped} ya existían`, ok: true })
+        fetchSlots(date)
+      }
+    } catch {
+      setToast({ msg: 'Error al generar franjas', ok: false })
+    } finally {
+      setGenerating(false)
+    }
+  }
+
   return (
     <>
       <div className="flex flex-col gap-6">
-        {/* Slots viewer */}
-        <div
-          className="rounded-2xl p-6"
-          style={{ backgroundColor: '#161310', border: '1px solid rgba(201,169,110,0.1)' }}
-        >
-          <h2 className="text-sm font-semibold uppercase tracking-widest mb-5" style={{ color: '#C9A96E' }}>
-            Franjas por fecha
-          </h2>
+
+        {/* ── Section 1: Franjas por fecha ── */}
+        <div style={cardStyle}>
+          <h2 style={sectionTitleStyle}>Franjas por fecha</h2>
 
           <div className="mb-5">
-            <label className="text-xs font-medium uppercase tracking-widest block mb-2" style={{ color: '#7A7268' }}>
-              Fecha
-            </label>
+            <label style={labelStyle}>Fecha</label>
             <input
-              id="schedule-date"
               type="date"
               value={date}
               onChange={handleDateChange}
               style={{ ...inputStyle, maxWidth: '220px' }}
-              onFocus={(e) => (e.target.style.borderColor = 'rgba(201,169,110,0.5)')}
-              onBlur={(e) => (e.target.style.borderColor = 'rgba(201,169,110,0.15)')}
+              {...focusHandlers}
             />
           </div>
 
           {slotsLoading ? (
             <div className="flex items-center gap-2 py-4">
-              <div className="w-4 h-4 rounded-full border-2 animate-spin" style={{ borderColor: 'rgba(201,169,110,0.2)', borderTopColor: '#C9A96E' }} />
+              <div
+                className="w-4 h-4 rounded-full border-2 animate-spin"
+                style={{ borderColor: 'rgba(201,169,110,0.2)', borderTopColor: '#C9A96E' }}
+              />
               <span className="text-sm" style={{ color: '#7A7268' }}>Cargando…</span>
             </div>
           ) : slotsError ? (
@@ -139,7 +271,6 @@ export default function ScheduleManager() {
                     border: '1px solid rgba(201,169,110,0.15)',
                   }}
                 >
-                  {/* Green dot */}
                   <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: '#4ADE80' }} />
                   <span className="text-sm font-medium tabular-nums" style={{ color: '#F2EDE7' }}>
                     {slot.start_time.slice(0, 5)}
@@ -160,14 +291,182 @@ export default function ScheduleManager() {
           )}
         </div>
 
-        {/* Bulk creator */}
-        <SlotBulkCreator
-          defaultDate={date}
-          onCreated={() => fetchSlots(date)}
-        />
+        {/* ── Section 2: Plantilla semanal ── */}
+        <div style={cardStyle}>
+          <h2 style={sectionTitleStyle}>Plantilla semanal</h2>
+
+          {templateLoading ? (
+            <div className="flex items-center gap-2 py-4">
+              <div
+                className="w-4 h-4 rounded-full border-2 animate-spin"
+                style={{ borderColor: 'rgba(201,169,110,0.2)', borderTopColor: '#C9A96E' }}
+              />
+              <span className="text-sm" style={{ color: '#7A7268' }}>Cargando plantilla…</span>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3 mb-5">
+              {DAY_ORDER.map((dayNum) => {
+                const enabled = !!templateEnabled[dayNum]
+                return (
+                  <div
+                    key={dayNum}
+                    className="flex flex-col sm:flex-row sm:items-center gap-3"
+                    style={{
+                      padding: '0.75rem 1rem',
+                      borderRadius: '0.75rem',
+                      backgroundColor: enabled ? 'rgba(201,169,110,0.05)' : 'rgba(255,255,255,0.02)',
+                      border: `1px solid ${enabled ? 'rgba(201,169,110,0.15)' : 'rgba(255,255,255,0.04)'}`,
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    {/* Checkbox + day label */}
+                    <label
+                      className="flex items-center gap-3 cursor-pointer select-none"
+                      style={{ minWidth: '120px' }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={enabled}
+                        onChange={(e) =>
+                          setTemplateEnabled((prev) => ({ ...prev, [dayNum]: e.target.checked }))
+                        }
+                        style={{
+                          width: '18px',
+                          height: '18px',
+                          accentColor: '#C9A96E',
+                          cursor: 'pointer',
+                          flexShrink: 0,
+                        }}
+                      />
+                      <span
+                        className="text-sm font-medium"
+                        style={{ color: enabled ? '#F2EDE7' : '#7A7268' }}
+                      >
+                        {DAY_LABELS[dayNum]}
+                      </span>
+                    </label>
+
+                    {/* Time inputs — only when enabled */}
+                    {enabled && (
+                      <div className="flex items-center gap-2 flex-1">
+                        <div className="flex-1">
+                          <input
+                            type="time"
+                            value={templateStart[dayNum] ?? '09:00'}
+                            onChange={(e) =>
+                              setTemplateStart((prev) => ({ ...prev, [dayNum]: e.target.value }))
+                            }
+                            style={inputStyle}
+                            {...focusHandlers}
+                          />
+                        </div>
+                        <span className="text-xs flex-shrink-0" style={{ color: '#7A7268' }}>a</span>
+                        <div className="flex-1">
+                          <input
+                            type="time"
+                            value={templateEnd[dayNum] ?? '18:00'}
+                            onChange={(e) =>
+                              setTemplateEnd((prev) => ({ ...prev, [dayNum]: e.target.value }))
+                            }
+                            style={inputStyle}
+                            {...focusHandlers}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          <button
+            onClick={handleSaveTemplate}
+            disabled={savingTemplate || templateLoading}
+            className="py-3 px-6 rounded-full text-sm font-semibold transition-all"
+            style={{
+              backgroundColor:
+                !savingTemplate && !templateLoading ? '#C9A96E' : 'rgba(201,169,110,0.15)',
+              color: !savingTemplate && !templateLoading ? '#0E0B08' : '#4A4540',
+              cursor: !savingTemplate && !templateLoading ? 'pointer' : 'not-allowed',
+              minHeight: '44px',
+            }}
+          >
+            {savingTemplate ? 'Guardando…' : 'Guardar plantilla'}
+          </button>
+        </div>
+
+        {/* ── Section 3: Generador de franjas ── */}
+        <div style={cardStyle}>
+          <h2 style={sectionTitleStyle}>Generar franjas</h2>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+            <div>
+              <label style={labelStyle}>Desde</label>
+              <input
+                type="date"
+                value={genStartDate}
+                onChange={(e) => setGenStartDate(e.target.value)}
+                style={inputStyle}
+                {...focusHandlers}
+              />
+            </div>
+
+            <div>
+              <label style={labelStyle}>Semanas</label>
+              <select
+                value={genWeeks}
+                onChange={(e) => setGenWeeks(e.target.value)}
+                style={{
+                  ...inputStyle,
+                  appearance: 'none',
+                  WebkitAppearance: 'none',
+                  cursor: 'pointer',
+                }}
+              >
+                {[1, 2, 3, 4, 6, 8, 12].map((w) => (
+                  <option key={w} value={String(w)}>
+                    {w} {w === 1 ? 'semana' : 'semanas'}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <button
+            onClick={handleGenerate}
+            disabled={generating || !genStartDate}
+            className="py-3 px-6 rounded-full text-sm font-semibold transition-all"
+            style={{
+              backgroundColor:
+                !generating && genStartDate ? '#C9A96E' : 'rgba(201,169,110,0.15)',
+              color: !generating && genStartDate ? '#0E0B08' : '#4A4540',
+              cursor: !generating && genStartDate ? 'pointer' : 'not-allowed',
+              minHeight: '44px',
+            }}
+          >
+            {generating ? (
+              <span className="flex items-center gap-2">
+                <span
+                  className="w-4 h-4 rounded-full border-2 animate-spin inline-block"
+                  style={{ borderColor: 'rgba(14,11,8,0.3)', borderTopColor: '#0E0B08' }}
+                />
+                Generando…
+              </span>
+            ) : (
+              'Generar franjas'
+            )}
+          </button>
+        </div>
+
+        {/* ── Section 4: Creación manual ── */}
+        <div style={cardStyle}>
+          <h2 style={sectionTitleStyle}>Creación manual</h2>
+          <SlotBulkCreator defaultDate={date} onCreated={() => fetchSlots(date)} />
+        </div>
       </div>
 
-      {/* Delete confirmation */}
+      {/* Delete confirmation dialog */}
       <Dialog
         open={!!deleteTarget}
         onOpenChange={(open) => {
@@ -186,7 +485,10 @@ export default function ScheduleManager() {
             </DialogDescription>
           </DialogHeader>
           {deleteError && (
-            <p className="text-sm px-3 py-2 rounded-xl" style={{ color: '#FF8080', backgroundColor: 'rgba(255,128,128,0.08)' }}>
+            <p
+              className="text-sm px-3 py-2 rounded-xl"
+              style={{ color: '#FF8080', backgroundColor: 'rgba(255,128,128,0.08)' }}
+            >
               {deleteError}
             </p>
           )}
@@ -204,7 +506,11 @@ export default function ScheduleManager() {
                 onClick={handleDelete}
                 disabled={deleting}
                 className="px-4 py-2 rounded-full text-sm font-semibold"
-                style={{ backgroundColor: 'rgba(255,80,80,0.15)', color: '#FF8080', border: '1px solid rgba(255,80,80,0.25)' }}
+                style={{
+                  backgroundColor: 'rgba(255,80,80,0.15)',
+                  color: '#FF8080',
+                  border: '1px solid rgba(255,80,80,0.25)',
+                }}
               >
                 {deleting ? 'Eliminando…' : 'Sí, eliminar'}
               </button>
@@ -212,6 +518,26 @@ export default function ScheduleManager() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Toast */}
+      {toast && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '80px',
+            right: '20px',
+            zIndex: 100,
+            backgroundColor: toast.ok ? 'rgba(74,222,128,0.15)' : 'rgba(255,80,80,0.12)',
+            border: `1px solid ${toast.ok ? 'rgba(74,222,128,0.3)' : 'rgba(255,80,80,0.3)'}`,
+            color: toast.ok ? '#4ADE80' : '#FF8080',
+            padding: '0.75rem 1.25rem',
+            borderRadius: '12px',
+            fontSize: '0.875rem',
+          }}
+        >
+          {toast.msg}
+        </div>
+      )}
     </>
   )
 }

@@ -48,7 +48,7 @@ export default function GallerySection() {
             Nuestros Trabajos
           </p>
           <h2
-            className="text-4xl md:text-5xl font-bold tracking-tight"
+            className="text-section-title"
             style={{ color: '#F2EDE7' }}
           >
             Estilo que habla por ti.

@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
   // Max 14 days
   const fromMs = new Date(from).getTime()
   const toMs   = new Date(to).getTime()
-  if (toMs - fromMs > 14 * 24 * 60 * 60 * 1000) {
+  if (toMs - fromMs > 31 * 24 * 60 * 60 * 1000) {
     return NextResponse.json({ error: 'RANGE_TOO_LARGE' }, { status: 400 })
   }
 

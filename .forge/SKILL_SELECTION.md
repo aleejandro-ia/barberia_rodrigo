@@ -1,5 +1,6 @@
 # Skill Selection
-Generated: 2026-05-29
+Generated: 2026-05-31
+Phase: POST-16 — Visual Overhaul + Admin Reorganización + Horarios Backend
 
 ## Always-on skills (active every session)
 - caveman — token optimization, terse communication
@@ -8,46 +9,41 @@ Generated: 2026-05-29
 
 ## Phase skill assignments
 
-### Phase 0 — Setup & base
-Skills: none needed
-Reason: Boilerplate scaffold with clear spec. Any competent agent handles this without a skill.
+### P16-A — Tipografía (globals.css + landing headings)
+Skills: none
+Reason: CSS clamp() puro, sin decisiones peligrosas. Riesgo bajo. Context suficiente en dispatch prompt.
+Critical notes in dispatch: Tailwind v4 → NO tailwindcss plugin en postcss; NO tocar Dancing Script decorativos.
 
-### Phase 1 — Database & schema
-Skills: none custom needed
-Reason: DATA_MODEL.md fully specifies the schema. Supabase RLS patterns are standard.
-Note: Agent should be aware of Supabase RLS best practices (documented in DATA_MODEL.md).
+### P16-B — Calendario Landing (BookingCalendar redesign)
+Skills: `design-taste-frontend` — RECOMMENDED
+Reason: Rediseño visual en contexto premium/luxury. design-taste-frontend previene degradación de calidad visual y patrones AI-slop. Mantiene coherencia con el resto de la landing (ya diseñada con este skill).
+Skill path: .claude/skills/design-taste-frontend/ (instalado en proyecto)
 
-### Phase 2 — Authentication
-Skills: none custom needed
-Reason: Supabase Auth with phone OTP + Google OAuth is well-documented. CONTRACTS.md covers all auth flows.
+### P16-C — Admin Nav + Estructura de Rutas
+Skills: `admin-mobile-nav` — RECOMMENDED
+Reason: Bottom tab bar con iOS safe-area es patrón específico con múltiples trampas (oclusión de contenido, env() CSS, tap targets). Custom skill previene los 5 anti-patterns más comunes.
+Skill path: .claude/skills/project/admin-mobile-nav.md
 
-### Phase 3 — API layer
-Skills: none custom needed
-Reason: CONTRACTS.md fully specifies all endpoints and server actions. Zod validation is standard.
+### P16-D — Admin Agenda Mensual
+Skills: `agenda-monthly-context` — RECOMMENDED
+Reason: Tipos AgendaDay/AgendaSlot ya existen en types/index.ts. date-fns weekStartsOn:1 crítico para España. Componentes AgendaDayPanel/AgendaModal deben reutilizarse, no recrearse. Sin este context el subagente reinventa desde cero.
+Skill path: .claude/skills/project/agenda-monthly-context.md
 
-### Phase 4 — Public landing UI
-Skills: design-taste-frontend — BLOCKING, high-end-visual-design — BLOCKING
-Reason: User explicitly wants a premium/luxury feel. These skills prevent AI design slop (generic layouts, Inter font, AI-purple gradients, etc.) and enforce agency-tier output. Without them, the landing will look like a template.
-Skill paths:
-- .agents/skills/design-taste-frontend/SKILL.md
-- .agents/skills/high-end-visual-design/SKILL.md
-
-### Phase 5 — Admin panel UI
-Skills: none (intentionally)
-Reason: Admin panel is a utility tool. Premium aesthetics add complexity without value. shadcn/ui provides solid, professional, accessible components.
-
-### Phase 6 — Deploy & final config
-Skills: none needed
-Reason: Simple documentation and config task.
-
-## Detected gaps
-- No skill exists in SKILL_REPO.md (it was empty — first project). Built from installed taste-skills instead.
-- No Supabase-specific skill installed. DATA_MODEL.md and CONTRACTS.md compensate with explicit schema and patterns.
+### P16-G — Admin Horarios Backend + Redesign
+Skills: `horarios-backend-context` — BLOCKING
+Reason: booking_settings es key-value store (no tabla nueva). supabaseAdmin vs createClient choice es crítica (RLS silencioso). ON CONFLICT DO NOTHING obligatorio. Sin este skill el subagente puede: crear tabla nueva, usar client incorrecto, duplicar slots.
+Skill path: .claude/skills/project/horarios-backend-context.md
 
 ## Skills created this session
-None — using installed taste-skills directly (design-taste-frontend, high-end-visual-design from Leonxlnx/taste-skill).
+- .claude/skills/project/admin-mobile-nav.md (nueva — P16-C)
+- .claude/skills/project/agenda-monthly-context.md (nueva — P16-D)
+- .claude/skills/project/horarios-backend-context.md (nueva — P16-G)
 
-## Skills added to SKILL_REPO.md after this project
-After execution, evaluate and add to SKILL_REPO.md:
-- design-taste-frontend (Leonxlnx/taste-skill) — for premium landing pages
-- high-end-visual-design (Leonxlnx/taste-skill) — for agency-tier UI components
+## Detected gaps
+- SKILL_REPO.md vacío en Backend/DB/Auth — skills custom creadas desde cero para este proyecto
+- find-skills no instalado en este entorno — búsqueda externa no disponible
+
+## Notes
+- design-taste-frontend ya instalado en proyecto (POST-1 decision, SKILL_REPO.md)
+- P16-A no necesita skill — dispatch prompt incluirá notas críticas de Tailwind v4
+- Todos los subagentes POST-16 ejecutan en paralelo (cero archivos compartidos)

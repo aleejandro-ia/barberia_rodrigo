@@ -801,10 +801,7 @@ export default function BookingSection() {
 
             {/* Step: date */}
             {step === 'date' && (
-              <div
-                className="rounded-2xl p-6"
-                style={{ backgroundColor: '#0E0B08', border: '1px solid rgba(201,169,110,0.12)' }}
-              >
+              <div className="py-2">
                 <BookingCalendar
                   selectedDate={selectedDate}
                   onSelectDate={handleSelectDate}
@@ -926,10 +923,12 @@ export default function BookingSection() {
                     >
                       {selectedDate ? 'Fecha seleccionada' : 'Selecciona un día'}
                     </p>
-                    <BookingCalendar
-                      selectedDate={selectedDate}
-                      onSelectDate={handleSelectDate}
-                    />
+                    <div className="max-w-[420px] mx-auto">
+                      <BookingCalendar
+                        selectedDate={selectedDate}
+                        onSelectDate={handleSelectDate}
+                      />
+                    </div>
                   </div>
 
                   {/* Divider + slots — only when date selected */}
