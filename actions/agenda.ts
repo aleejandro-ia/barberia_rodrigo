@@ -326,7 +326,8 @@ export async function adminMarkCompleted(
 
 /* ─── adminCopyWeekToNext ────────────────────────────────────── */
 export async function adminCopyWeekToNext(
-  weekStart: string // 'YYYY-MM-DD' — Monday of the week to copy
+  weekStart: string, // 'YYYY-MM-DD' — Monday of the week to copy
+  barber_id?: string // when provided, copy only this barber's slots
 ): Promise<{ created: number; skipped: number } | { error: 'UNAUTHORIZED' | 'NOT_FOUND' }> {
   const user = await getUser()
   if (!isAdmin(user)) return { error: 'UNAUTHORIZED' }
@@ -334,20 +335,22 @@ export async function adminCopyWeekToNext(
   const supabase = await createClient()
 
   // Get all slots for this week (Mon to Sun)
-  const weekStartDate = new Date(weekStart)
   const weekEndDate = new Date(weekStart)
   weekEndDate.setDate(weekEndDate.getDate() + 6)
   const weekEnd = weekEndDate.toISOString().split('T')[0]
 
-  const { data: slots } = await supabase
+  // Include barber_id so each barber's slots are copied for the right barber
+  let slotsQuery = supabase
     .from('availability_slots')
-    .select('date, start_time, end_time, is_available')
+    .select('date, start_time, end_time, is_available, barber_id')
     .gte('date', weekStart)
     .lte('date', weekEnd)
+  if (barber_id) slotsQuery = slotsQuery.eq('barber_id', barber_id)
+  const { data: slots } = await slotsQuery
 
   if (!slots || slots.length === 0) return { error: 'NOT_FOUND' }
 
-  // Build next-week slots (+7 days)
+  // Build next-week slots (+7 days) — preserve barber_id
   const nextWeekSlots = slots.map(slot => {
     const d = new Date(slot.date)
     d.setDate(d.getDate() + 7)
@@ -356,6 +359,7 @@ export async function adminCopyWeekToNext(
       start_time: slot.start_time,
       end_time: slot.end_time,
       is_available: slot.is_available,
+      barber_id: slot.barber_id,
     }
   })
 

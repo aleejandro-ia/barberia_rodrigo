@@ -12,9 +12,10 @@ interface AgendaWeekNavProps {
   onNext:    () => void
   onToday:   () => void
   loading:   boolean
+  barberId?: string
 }
 
-export default function AgendaWeekNav({ weekLabel, weekStart, onPrev, onNext, onToday, loading }: AgendaWeekNavProps) {
+export default function AgendaWeekNav({ weekLabel, weekStart, onPrev, onNext, onToday, loading, barberId }: AgendaWeekNavProps) {
   const [copying,    setCopying]    = useState(false)
   const [copyToast,  setCopyToast]  = useState<string | null>(null)
 
@@ -37,7 +38,7 @@ export default function AgendaWeekNav({ weekLabel, weekStart, onPrev, onNext, on
     setCopying(true)
     setCopyToast(null)
     const weekStartStr = format(weekStart, 'yyyy-MM-dd')
-    const result = await adminCopyWeekToNext(weekStartStr)
+    const result = await adminCopyWeekToNext(weekStartStr, barberId)
     setCopying(false)
     if ('error' in result) {
       setCopyToast('La semana no tiene franjas para copiar.')

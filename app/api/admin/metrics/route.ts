@@ -1,12 +1,13 @@
 import { createClient } from '@/lib/supabase/server'
 import { getUser, isAdmin } from '@/lib/auth'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const user = await getUser()
   if (!isAdmin(user)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const supabase = await createClient()
+  const barber_id = request.nextUrl.searchParams.get('barber_id')
   const today = new Date().toISOString().split('T')[0]
 
   // Week boundaries (Mon-Sun)
@@ -38,13 +39,13 @@ export async function GET() {
     { data: last30Slots },
     { data: topClientsRaw },
   ] = await Promise.all([
-    supabase.from('appointments').select('status').eq('slot_date', today),
-    supabase.from('appointments').select('status').gte('slot_date', weekStartStr).lte('slot_date', weekEndStr),
-    supabase.from('appointments').select('id').eq('status', 'confirmed').gt('slot_date', today).lte('slot_date', next7Str),
-    supabase.from('availability_slots').select('id').eq('is_available', true).gt('date', today).lte('date', next7Str),
-    supabase.from('appointments').select('status').gte('slot_date', last30Str).lte('slot_date', today),
-    supabase.from('availability_slots').select('id').gte('date', last30Str).lte('date', today),
-    supabase.from('appointments').select('client_name, client_phone').eq('status', 'completed').gte('slot_date', last30Str),
+    (() => { const q = supabase.from('appointments').select('status').eq('slot_date', today); return barber_id ? q.eq('barber_id', barber_id) : q })(),
+    (() => { const q = supabase.from('appointments').select('status').gte('slot_date', weekStartStr).lte('slot_date', weekEndStr); return barber_id ? q.eq('barber_id', barber_id) : q })(),
+    (() => { const q = supabase.from('appointments').select('id').eq('status', 'confirmed').gt('slot_date', today).lte('slot_date', next7Str); return barber_id ? q.eq('barber_id', barber_id) : q })(),
+    (() => { const q = supabase.from('availability_slots').select('id').eq('is_available', true).gt('date', today).lte('date', next7Str); return barber_id ? q.eq('barber_id', barber_id) : q })(),
+    (() => { const q = supabase.from('appointments').select('status').gte('slot_date', last30Str).lte('slot_date', today); return barber_id ? q.eq('barber_id', barber_id) : q })(),
+    (() => { const q = supabase.from('availability_slots').select('id').gte('date', last30Str).lte('date', today); return barber_id ? q.eq('barber_id', barber_id) : q })(),
+    (() => { const q = supabase.from('appointments').select('client_name, client_phone').eq('status', 'completed').gte('slot_date', last30Str); return barber_id ? q.eq('barber_id', barber_id) : q })(),
   ])
 
   const todayList  = todayAppts  ?? []

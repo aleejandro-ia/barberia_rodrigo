@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import type { Barber } from '@/types'
 
 interface MetricsData {
   today: {
@@ -52,21 +53,65 @@ export default function AdminMetrics() {
   const [loading, setLoading] = useState(true)
   const [error,   setError]   = useState(false)
 
+  // Barbers + selection — metrics are filtered per barber
+  const [barbers,          setBarbers]          = useState<Barber[]>([])
+  const [selectedBarberId, setSelectedBarberId] = useState<string>('')
+  const [barbersReady,     setBarbersReady]     = useState(false)
+
   useEffect(() => {
-    fetch('/api/admin/metrics')
+    fetch('/api/barbers')
+      .then(r => r.json())
+      .then(d => {
+        const list: Barber[] = d.barbers ?? []
+        setBarbers(list)
+        if (list.length > 0) setSelectedBarberId(list[0].id)
+      })
+      .catch(() => {})
+      .finally(() => setBarbersReady(true))
+  }, [])
+
+  useEffect(() => {
+    // Wait until barbers resolved; fall back to global metrics if none exist
+    if (!barbersReady) return
+    const url = selectedBarberId
+      ? `/api/admin/metrics?barber_id=${selectedBarberId}`
+      : '/api/admin/metrics'
+    fetch(url)
       .then(r => r.json())
       .then(d => setData(d))
       .catch(() => setError(true))
       .finally(() => setLoading(false))
-  }, [])
+  }, [barbersReady, selectedBarberId])
 
   if (error) return null
 
+  const multiBarber = barbers.length > 1
+
   return (
     <div className="mb-8">
-      <p className="text-xs font-medium uppercase tracking-widest mb-3" style={{ color: '#4A4540' }}>
-        Métricas
-      </p>
+      <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
+        <p className="text-xs font-medium uppercase tracking-widest" style={{ color: '#4A4540' }}>
+          Métricas
+        </p>
+        {multiBarber && (
+          <div className="flex gap-2 flex-wrap">
+            {barbers.map(b => (
+              <button
+                key={b.id}
+                onClick={() => { if (b.id !== selectedBarberId) { setLoading(true); setSelectedBarberId(b.id) } }}
+                className="px-3 py-1 rounded-full text-xs font-medium transition-all"
+                style={{
+                  backgroundColor: selectedBarberId === b.id ? '#C9A96E' : 'rgba(201,169,110,0.08)',
+                  color:           selectedBarberId === b.id ? '#0E0B08' : '#7A7268',
+                  border:          `1px solid ${selectedBarberId === b.id ? '#C9A96E' : 'rgba(201,169,110,0.15)'}`,
+                }}
+              >
+                {b.name}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
       {loading ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">

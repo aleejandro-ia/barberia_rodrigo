@@ -91,19 +91,20 @@ export async function deleteAvailabilitySlot(slotId: string) {
 
   const { data: slot } = await supabase
     .from('availability_slots')
-    .select('date, start_time')
+    .select('date, start_time, barber_id')
     .eq('id', slotId)
     .maybeSingle()
   if (!slot) return { error: 'NOT_FOUND' as const }
 
-  // Check no confirmed booking for this slot
-  const { data: booking } = await supabase
+  // Check no confirmed booking for this slot — scoped to this slot's barber
+  let bookingQuery = supabase
     .from('appointments')
     .select('id')
     .eq('slot_date', slot.date)
     .eq('slot_start_time', slot.start_time)
     .eq('status', 'confirmed')
-    .maybeSingle()
+  if (slot.barber_id) bookingQuery = bookingQuery.eq('barber_id', slot.barber_id)
+  const { data: booking } = await bookingQuery.maybeSingle()
   if (booking) return { error: 'HAS_BOOKING' as const }
 
   await supabase.from('availability_slots').delete().eq('id', slotId)
