@@ -143,7 +143,7 @@ export async function rescheduleAppointment(
   const supabase = await createClient()
   const { data: appt } = await supabase
     .from('appointments')
-    .select('id, user_id, status, slot_date, slot_start_time')
+    .select('id, user_id, status, slot_date, slot_start_time, barber_id')
     .eq('id', appointmentId)
     .maybeSingle()
   if (!appt) return { error: 'NOT_FOUND' as const }
@@ -160,25 +160,27 @@ export async function rescheduleAppointment(
   const today = new Date().toISOString().split('T')[0]
   if (newSlot.slot_date < today) return { error: 'VALIDATION_ERROR' as const }
 
-  // Check new slot exists and is available
-  const { data: slot } = await supabase
+  // Check new slot exists and is available — scoped to the same barber
+  let slotQuery = supabase
     .from('availability_slots')
     .select('id')
     .eq('date', newSlot.slot_date)
     .eq('start_time', newSlot.slot_start_time)
     .eq('is_available', true)
-    .maybeSingle()
+  if (appt.barber_id) slotQuery = slotQuery.eq('barber_id', appt.barber_id)
+  const { data: slot } = await slotQuery.maybeSingle()
   if (!slot) return { error: 'SLOT_NOT_FOUND' as const }
 
-  // Check new slot is not already taken (ignore current appointment)
-  const { data: taken } = await supabase
+  // Check new slot not taken — scoped to the same barber
+  let takenQuery = supabase
     .from('appointments')
     .select('id')
     .eq('slot_date', newSlot.slot_date)
     .eq('slot_start_time', newSlot.slot_start_time)
     .eq('status', 'confirmed')
     .neq('id', appointmentId)
-    .maybeSingle()
+  if (appt.barber_id) takenQuery = takenQuery.eq('barber_id', appt.barber_id)
+  const { data: taken } = await takenQuery.maybeSingle()
   if (taken) return { error: 'SLOT_TAKEN' as const }
 
   // UPDATE in-place — old slot is freed automatically

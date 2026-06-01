@@ -176,6 +176,7 @@ export default function RescheduleModal({
             <BookingCalendar
               selectedDate={selectedDate}
               onSelectDate={handleDateSelect}
+              barberId={appointment.barber_id ?? undefined}
             />
           )}
 
@@ -185,6 +186,7 @@ export default function RescheduleModal({
               selectedSlot={selectedSlot}
               onSelectSlot={handleSlotSelect}
               refreshKey={refreshKey}
+              barberId={appointment.barber_id ?? undefined}
             />
           )}
 
