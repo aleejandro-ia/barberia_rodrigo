@@ -22,7 +22,7 @@ import BookingCalendar from '@/components/landing/BookingCalendar'
 import TimeSlotPicker from '@/components/landing/TimeSlotPicker'
 import { format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
-import type { AvailabilitySlot, Appointment } from '@/types'
+import type { AvailabilitySlot, Appointment, Barber } from '@/types'
 
 /* ─── Modal mode union ───────────────────────────────────────── */
 export type AgendaModalMode =
@@ -395,11 +395,35 @@ function RescheduleAppointmentForm({ appointment: appt, onClose, onSuccess }: {
   onClose:     () => void
   onSuccess:   () => void
 }) {
-  const [step,         setStep]         = useState<'date' | 'slot' | 'confirm'>('date')
-  const [selectedDate, setSelectedDate] = useState<string | null>(null)
-  const [selectedSlot, setSelectedSlot] = useState<RescheduleSlot | null>(null)
-  const [loading,      setLoading]      = useState(false)
-  const [error,        setError]        = useState<string | null>(null)
+  const [step,            setStep]            = useState<'date' | 'slot' | 'confirm'>('date')
+  const [selectedDate,    setSelectedDate]    = useState<string | null>(null)
+  const [selectedSlot,    setSelectedSlot]    = useState<RescheduleSlot | null>(null)
+  const [loading,         setLoading]         = useState(false)
+  const [error,           setError]           = useState<string | null>(null)
+  const [barbers,         setBarbers]         = useState<Barber[]>([])
+  const [targetBarberId,  setTargetBarberId]  = useState<string>(appt.barber_id ?? '')
+
+  // Load barbers once
+  useEffect(() => {
+    fetch('/api/barbers')
+      .then(r => r.json())
+      .then(data => {
+        const list: Barber[] = data.barbers ?? []
+        setBarbers(list)
+        // If appointment has no barber_id but list has one, default to first
+        if (!targetBarberId && list.length > 0) setTargetBarberId(list[0].id)
+      })
+      .catch(() => {})
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  function handleBarberChange(id: string) {
+    if (id === targetBarberId) return
+    setTargetBarberId(id)
+    setSelectedDate(null)
+    setSelectedSlot(null)
+    setStep('date')
+  }
 
   function handleDateSelect(date: string) {
     setSelectedDate(date)
@@ -419,6 +443,7 @@ function RescheduleAppointmentForm({ appointment: appt, onClose, onSuccess }: {
       slot_date:       selectedDate,
       slot_start_time: selectedSlot.start_time.slice(0, 5),
       slot_end_time:   selectedSlot.end_time.slice(0, 5),
+      barber_id:       targetBarberId || undefined,
     })
     setLoading(false)
     if ('error' in result) {
@@ -434,16 +459,51 @@ function RescheduleAppointmentForm({ appointment: appt, onClose, onSuccess }: {
     }
   }
 
+  const multiBarber = barbers.length > 1
+
   return (
     <div>
-      {step === 'date' && (
-        <div>
-          <p className="text-xs mb-4" style={{ color: '#7A7268' }}>
-            Cita actual: <strong style={{ color: '#F2EDE7' }}>{appt.client_name}</strong>
-            {' · '}{appt.slot_date} {appt.slot_start_time.slice(0, 5)}
-          </p>
-          <BookingCalendar selectedDate={selectedDate} onSelectDate={handleDateSelect} />
+      {/* Current appointment info */}
+      <p className="text-xs mb-3" style={{ color: '#7A7268' }}>
+        Cita actual: <strong style={{ color: '#F2EDE7' }}>{appt.client_name}</strong>
+        {' · '}{appt.slot_date} {appt.slot_start_time.slice(0, 5)}
+      </p>
+
+      {/* Barber selector — always visible when 2+ barbers */}
+      {multiBarber && (
+        <div
+          className="flex items-center gap-2 mb-4 px-3 py-2.5 rounded-xl flex-wrap"
+          style={{ backgroundColor: 'rgba(201,169,110,0.05)', border: '1px solid rgba(201,169,110,0.12)' }}
+        >
+          <span className="text-xs font-semibold uppercase tracking-widest flex-shrink-0" style={{ color: '#4A4540' }}>
+            Barbero
+          </span>
+          <div className="flex gap-1.5 flex-wrap">
+            {barbers.map(b => (
+              <button
+                key={b.id}
+                onClick={() => handleBarberChange(b.id)}
+                className="px-3 py-1 rounded-full text-xs font-medium transition-all"
+                style={{
+                  backgroundColor: targetBarberId === b.id ? '#C9A96E' : 'rgba(201,169,110,0.08)',
+                  color:           targetBarberId === b.id ? '#0E0B08' : '#7A7268',
+                  border:          `1px solid ${targetBarberId === b.id ? '#C9A96E' : 'rgba(201,169,110,0.15)'}`,
+                  cursor:          'pointer',
+                }}
+              >
+                {b.name}
+              </button>
+            ))}
+          </div>
         </div>
+      )}
+
+      {step === 'date' && (
+        <BookingCalendar
+          selectedDate={selectedDate}
+          onSelectDate={handleDateSelect}
+          barberId={targetBarberId || undefined}
+        />
       )}
 
       {step === 'slot' && selectedDate && (
@@ -459,18 +519,30 @@ function RescheduleAppointmentForm({ appointment: appt, onClose, onSuccess }: {
             date={selectedDate}
             selectedSlot={selectedSlot}
             onSelectSlot={handleSlotSelect}
+            barberId={targetBarberId || undefined}
+            minHoursAdvance={0}
           />
         </div>
       )}
 
       {step === 'confirm' && selectedDate && selectedSlot && (
         <div>
-          <p className="text-sm mb-4" style={{ color: '#7A7268' }}>
-            Reagendar a:{' '}
-            <strong style={{ color: '#C9A96E' }}>
+          <div
+            className="rounded-xl p-3 mb-4"
+            style={{ backgroundColor: 'rgba(201,169,110,0.06)', border: '1px solid rgba(201,169,110,0.12)' }}
+          >
+            <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: '#7A7268' }}>
+              Nuevo horario
+            </p>
+            <p className="text-sm font-semibold" style={{ color: '#F2EDE7' }}>
               {format(parseISO(selectedDate), "d 'de' MMMM", { locale: es })} · {selectedSlot.start_time.slice(0, 5)}
-            </strong>
-          </p>
+            </p>
+            {multiBarber && targetBarberId && (
+              <p className="text-xs mt-1" style={{ color: '#C9A96E' }}>
+                {barbers.find(b => b.id === targetBarberId)?.name ?? ''}
+              </p>
+            )}
+          </div>
           <button
             className="text-xs mb-4 flex items-center gap-1 transition-opacity hover:opacity-70"
             style={{ color: '#7A7268', background: 'none', border: 'none', cursor: 'pointer' }}

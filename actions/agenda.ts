@@ -211,7 +211,7 @@ export async function adminEditSlotTimes(
 /* ─── adminRescheduleAppointment ─────────────────────────────── */
 export async function adminRescheduleAppointment(
   appointmentId: string,
-  newSlot: { slot_date: string; slot_start_time: string; slot_end_time: string }
+  newSlot: { slot_date: string; slot_start_time: string; slot_end_time: string; barber_id?: string }
 ): Promise<{ success: true } | { error: 'UNAUTHORIZED' | 'NOT_FOUND' | 'NOT_CONFIRMED' | 'SLOT_TAKEN' }> {
   const user = await getUser()
   if (!isAdmin(user)) return { error: 'UNAUTHORIZED' }
@@ -219,33 +219,41 @@ export async function adminRescheduleAppointment(
   const supabase = await createClient()
   const { data: appt } = await supabase
     .from('appointments')
-    .select('id, status, slot_date, slot_start_time, client_name, user_id, notes')
+    .select('id, status, slot_date, slot_start_time, barber_id, client_name, user_id, notes')
     .eq('id', appointmentId)
     .maybeSingle()
   if (!appt) return { error: 'NOT_FOUND' }
   if (appt.status !== 'confirmed') return { error: 'NOT_CONFIRMED' }
 
-  // Check new slot is not already taken (ignore current appointment)
-  const { data: taken } = await supabase
+  // Check new slot is not already taken — scoped to the target barber
+  const targetBarberId = newSlot.barber_id ?? appt.barber_id
+  let takenQuery = supabase
     .from('appointments')
     .select('id')
     .eq('slot_date', newSlot.slot_date)
     .eq('slot_start_time', newSlot.slot_start_time)
     .eq('status', 'confirmed')
     .neq('id', appointmentId)
-    .maybeSingle()
+  if (targetBarberId) takenQuery = takenQuery.eq('barber_id', targetBarberId)
+  const { data: taken } = await takenQuery.maybeSingle()
   if (taken) return { error: 'SLOT_TAKEN' }
 
-  await supabase.from('appointments').update({
-    slot_date: newSlot.slot_date,
-    slot_start_time: newSlot.slot_start_time,
-    slot_end_time: newSlot.slot_end_time,
-    rescheduled_at: new Date().toISOString(),
-    previous_slot_date: appt.slot_date,
+  // Build update payload — include barber_id if it's changing
+  const updatePayload: Record<string, unknown> = {
+    slot_date:                newSlot.slot_date,
+    slot_start_time:          newSlot.slot_start_time,
+    slot_end_time:            newSlot.slot_end_time,
+    rescheduled_at:           new Date().toISOString(),
+    previous_slot_date:       appt.slot_date,
     previous_slot_start_time: appt.slot_start_time,
-    reminder_24h_sent_at: null,
-    reminder_2h_sent_at: null,
-  }).eq('id', appointmentId)
+    reminder_24h_sent_at:     null,
+    reminder_2h_sent_at:      null,
+  }
+  if (newSlot.barber_id && newSlot.barber_id !== appt.barber_id) {
+    updatePayload.barber_id = newSlot.barber_id
+  }
+
+  await supabase.from('appointments').update(updatePayload).eq('id', appointmentId)
 
   // Email notification (optional — degrades gracefully)
   try {
