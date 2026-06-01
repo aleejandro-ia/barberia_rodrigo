@@ -31,11 +31,14 @@ export async function GET(request: NextRequest) {
   // are visible regardless of who's calling (RLS hides other users' bookings
   // from non-admin sessions, causing taken slots to appear free)
   const adminClient = createAdminClient()
-  const { data: booked } = await adminClient
+  let bookedQuery = adminClient
     .from('appointments')
     .select('slot_start_time')
     .eq('slot_date', date)
     .eq('status', 'confirmed')
+  // Scope to the same barber — two barbers can share a timeslot
+  if (barber_id) bookedQuery = bookedQuery.eq('barber_id', barber_id)
+  const { data: booked } = await bookedQuery
 
   const bookedTimes = new Set((booked ?? []).map((b) => b.slot_start_time))
   const available = slots.filter((s) => !bookedTimes.has(s.start_time))

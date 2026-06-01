@@ -33,24 +33,26 @@ export async function bookAppointment(data: unknown, barber_id?: string | null):
   const hoursUntil = (slotDT.getTime() - Date.now()) / (1000 * 60 * 60)
   if (hoursUntil < settings.min_hours_advance) return { error: 'TOO_SOON' as const }
 
-  // Check slot exists and is available
-  const { data: slot } = await supabase
+  // Check slot exists and is available — scoped to the chosen barber
+  let slotQuery = supabase
     .from('availability_slots')
     .select('id')
     .eq('date', slot_date)
     .eq('start_time', slot_start_time)
     .eq('is_available', true)
-    .maybeSingle()
+  if (barber_id != null) slotQuery = slotQuery.eq('barber_id', barber_id)
+  const { data: slot } = await slotQuery.limit(1).maybeSingle()
   if (!slot) return { error: 'SLOT_NOT_FOUND' as const }
 
-  // Check slot not already booked
-  const { data: existingBooking } = await supabase
+  // Check slot not already booked — scoped to the chosen barber
+  let existingQuery = supabase
     .from('appointments')
     .select('id')
     .eq('slot_date', slot_date)
     .eq('slot_start_time', slot_start_time)
     .eq('status', 'confirmed')
-    .maybeSingle()
+  if (barber_id != null) existingQuery = existingQuery.eq('barber_id', barber_id)
+  const { data: existingBooking } = await existingQuery.limit(1).maybeSingle()
   if (existingBooking) return { error: 'SLOT_TAKEN' as const }
 
   // NOTE: ALREADY_HAS_BOOKING check removed — multiple bookings allowed, UI warns instead

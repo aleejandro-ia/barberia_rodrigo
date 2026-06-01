@@ -41,7 +41,7 @@ export async function adminCreateAppointment(
     .eq('start_time', slot_start_time)
     .eq('is_available', true)
   if (barber_id) slotQuery = slotQuery.eq('barber_id', barber_id)
-  const { data: slot } = await slotQuery.maybeSingle()
+  const { data: slot } = await slotQuery.limit(1).maybeSingle()
 
   if (!slot) return { error: 'SLOT_NOT_FOUND' }
 
@@ -124,21 +124,22 @@ export async function adminToggleSlotBlock(
 
   const { data: slot } = await supabase
     .from('availability_slots')
-    .select('id, date, start_time')
+    .select('id, date, start_time, barber_id')
     .eq('id', slotId)
     .maybeSingle()
 
   if (!slot) return { error: 'NOT_FOUND' }
 
   if (block) {
-    // Cannot block a slot with a confirmed appointment
-    const { data: existing } = await supabase
+    // Cannot block a slot with a confirmed appointment — scoped to this slot's barber
+    let existingQuery = supabase
       .from('appointments')
       .select('id')
       .eq('slot_date', slot.date)
       .eq('slot_start_time', slot.start_time)
       .eq('status', 'confirmed')
-      .maybeSingle()
+    if (slot.barber_id) existingQuery = existingQuery.eq('barber_id', slot.barber_id)
+    const { data: existing } = await existingQuery.maybeSingle()
 
     if (existing) return { error: 'HAS_BOOKING' }
   }
@@ -171,31 +172,33 @@ export async function adminEditSlotTimes(
 
   const { data: slot } = await supabase
     .from('availability_slots')
-    .select('id, date, start_time')
+    .select('id, date, start_time, barber_id')
     .eq('id', slotId)
     .maybeSingle()
 
   if (!slot) return { error: 'NOT_FOUND' }
 
-  // No confirmed appointment on this slot
-  const { data: existing } = await supabase
+  // No confirmed appointment on this slot — scoped to this slot's barber
+  let existingQuery = supabase
     .from('appointments')
     .select('id')
     .eq('slot_date', slot.date)
     .eq('slot_start_time', slot.start_time)
     .eq('status', 'confirmed')
-    .maybeSingle()
+  if (slot.barber_id) existingQuery = existingQuery.eq('barber_id', slot.barber_id)
+  const { data: existing } = await existingQuery.maybeSingle()
 
   if (existing) return { error: 'HAS_BOOKING' }
 
-  // No other slot already has the new start_time on same date
-  const { data: conflict } = await supabase
+  // No other slot for THIS barber already has the new start_time on same date
+  let conflictQuery = supabase
     .from('availability_slots')
     .select('id')
     .eq('date', slot.date)
     .eq('start_time', data.start_time)
     .neq('id', slotId)
-    .maybeSingle()
+  if (slot.barber_id) conflictQuery = conflictQuery.eq('barber_id', slot.barber_id)
+  const { data: conflict } = await conflictQuery.maybeSingle()
 
   if (conflict) return { error: 'DUPLICATE_SLOT' }
 
@@ -253,7 +256,13 @@ export async function adminRescheduleAppointment(
     updatePayload.barber_id = newSlot.barber_id
   }
 
-  await supabase.from('appointments').update(updatePayload).eq('id', appointmentId)
+  const { data: updated, error: updateError } = await supabase
+    .from('appointments')
+    .update(updatePayload)
+    .eq('id', appointmentId)
+    .select('id')
+  // Unique-index violation (same barber already confirmed at that slot) → SLOT_TAKEN
+  if (updateError || !updated || updated.length === 0) return { error: 'SLOT_TAKEN' }
 
   // Email notification (optional — degrades gracefully)
   try {

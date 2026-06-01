@@ -40,11 +40,14 @@ export async function GET(request: NextRequest) {
   // are visible regardless of who's calling (RLS hides other users' bookings
   // from non-admin sessions, causing fully-booked dates to still appear available)
   const adminClient = createAdminClient()
-  const { data: booked } = await adminClient
+  let bookedQuery = adminClient
     .from('appointments')
     .select('slot_date, slot_start_time')
     .eq('status', 'confirmed')
     .in('slot_date', potentialDates)
+  // Scope to the same barber — two barbers can share a timeslot
+  if (barber_id) bookedQuery = bookedQuery.eq('barber_id', barber_id)
+  const { data: booked } = await bookedQuery
 
   const bookedMap: Record<string, Set<string>> = {}
   for (const b of booked ?? []) {
