@@ -2,18 +2,17 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react'
-import { List, X, CalendarBlank, SignOut, User, GearSix } from '@phosphor-icons/react'
+import { List, X, CalendarBlank, SignOut, User, GearSix, Images } from '@phosphor-icons/react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { AuthModal } from '@/components/auth/AuthModal'
 import MyAppointmentModal from './MyAppointmentModal'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 
+// Static nav links (always shown)
 const navLinks = [
   { label: 'Sobre mí', href: '#sobre-mi' },
   { label: 'Servicios', href: '#servicios' },
-  { label: 'Trabajos', href: '#trabajos' },
-  { label: 'Reservar', href: '#reservar' },
 ]
 
 /* ─── Gold ring circle icon style ────────────────────────────── */
@@ -39,6 +38,7 @@ export default function NavBar() {
   const [isAdmin,              setIsAdmin]              = useState(false)
   const [authModalOpen,        setAuthModalOpen]        = useState(false)
   const [appointmentModalOpen, setAppointmentModalOpen] = useState(false)
+  const [galleryVisible,       setGalleryVisible]       = useState(true)
   const shouldReduceMotion = useReducedMotion()
 
   useEffect(() => {
@@ -59,6 +59,16 @@ export default function NavBar() {
       else setIsAdmin(false)
     })
     return () => subscription.unsubscribe()
+  }, [])
+
+  // Fetch gallery visibility from settings
+  useEffect(() => {
+    fetch('/api/settings')
+      .then((r) => r.json())
+      .then(({ settings }) => {
+        setGalleryVisible(settings?.gallery_enabled !== 'false')
+      })
+      .catch(() => setGalleryVisible(true))
   }, [])
 
   async function checkAdmin() {
@@ -85,7 +95,7 @@ export default function NavBar() {
     setAppointmentModalOpen(false)
   }
 
-  /* ─── User circle icon (desktop + mobile) ─────────────────── */
+  /* ─── User circle icon ────────────────────────────────────── */
   function renderUserCircle(size: number = 16) {
     if (!user) {
       return (
@@ -100,7 +110,6 @@ export default function NavBar() {
         </button>
       )
     }
-    // Logged in (admin or user) → calendar icon → /mis-citas
     return (
       <Link
         href="/mis-citas"
@@ -114,7 +123,7 @@ export default function NavBar() {
     )
   }
 
-  /* ─── Admin gear button (only when isAdmin) ────────────────── */
+  /* ─── Admin gear button ────────────────────────────────────── */
   function renderAdminCircle(size: number = 16) {
     if (!isAdmin) return null
     return (
@@ -129,6 +138,12 @@ export default function NavBar() {
       </Link>
     )
   }
+
+  // All visible nav items for mobile overlay (with animated index)
+  const mobileNavLinks = [
+    ...navLinks,
+    ...(galleryVisible ? [{ label: 'Galería', href: '#trabajos' }] : []),
+  ]
 
   return (
     <>
@@ -162,7 +177,7 @@ export default function NavBar() {
             {renderAdminCircle(16)}
           </div>
 
-          {/* ── CENTER: nav links (desktop only) ───────────────── */}
+          {/* ── CENTER: nav links + conditional Galería (desktop) ─ */}
           <div className="hidden md:flex items-center gap-0.5">
             {navLinks.map((link) => (
               <a
@@ -177,11 +192,24 @@ export default function NavBar() {
                 {link.label}
               </a>
             ))}
+
+            {/* Galería — visible only when gallery_enabled */}
+            {galleryVisible && (
+              <a
+                href="#trabajos"
+                onClick={(e) => { e.preventDefault(); handleNavClick('#trabajos') }}
+                className="px-3 py-1.5 rounded-full text-sm font-medium transition-colors duration-200"
+                style={{ color: '#888' }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = '#F2EDE7')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = '#888')}
+              >
+                Galería
+              </a>
+            )}
           </div>
 
           {/* ── RIGHT: CTA (desktop) + hamburger (mobile) ──────── */}
           <div className="flex items-center gap-2">
-            {/* CTA — desktop only */}
             <a
               href="#reservar"
               onClick={(e) => { e.preventDefault(); handleNavClick('#reservar') }}
@@ -191,7 +219,6 @@ export default function NavBar() {
               Reservar cita
             </a>
 
-            {/* Hamburger — mobile only */}
             <button
               className="md:hidden p-1.5 rounded-full transition-colors"
               style={{ color: '#F2EDE7' }}
@@ -216,7 +243,7 @@ export default function NavBar() {
             style={{ backgroundColor: 'rgba(14,11,8,0.97)', backdropFilter: 'blur(20px)' }}
           >
             <nav className="flex flex-col items-center gap-8">
-              {navLinks.map((link, i) => (
+              {mobileNavLinks.map((link, i) => (
                 <motion.a
                   key={link.href}
                   href={link.href}
@@ -235,7 +262,7 @@ export default function NavBar() {
                 <motion.div
                   initial={shouldReduceMotion ? false : { opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: navLinks.length * 0.07, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                  transition={{ delay: mobileNavLinks.length * 0.07, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                 >
                   <Link
                     href="/mis-citas"
@@ -253,7 +280,7 @@ export default function NavBar() {
                 <motion.div
                   initial={shouldReduceMotion ? false : { opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: (navLinks.length + (user ? 1 : 0)) * 0.07, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                  transition={{ delay: (mobileNavLinks.length + (user ? 1 : 0)) * 0.07, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                 >
                   <Link
                     href="/admin"
@@ -270,7 +297,7 @@ export default function NavBar() {
                 <motion.div
                   initial={shouldReduceMotion ? false : { opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: (navLinks.length + 2) * 0.07, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                  transition={{ delay: (mobileNavLinks.length + 2) * 0.07, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                 >
                   <button
                     onClick={() => { handleSignOut(); setMenuOpen(false) }}
@@ -287,7 +314,7 @@ export default function NavBar() {
                 href="#reservar"
                 initial={shouldReduceMotion ? false : { opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: (navLinks.length + 3) * 0.07, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                transition={{ delay: (mobileNavLinks.length + 3) * 0.07, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                 onClick={(e) => { e.preventDefault(); handleNavClick('#reservar') }}
                 className="mt-2 px-8 py-3 rounded-full text-base font-semibold"
                 style={{ backgroundColor: '#C9A96E', color: '#0E0B08' }}
