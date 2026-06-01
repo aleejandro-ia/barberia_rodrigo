@@ -67,13 +67,16 @@ export async function GET(req: NextRequest) {
     apptMap.get(key)!.push(a)
   }
 
-  // Join: each slot gets its best appointment (confirmed > cancelled > null)
+  // Join: each slot gets its most relevant appointment.
+  // Priority: confirmed (active) > completed > no_show (terminal history worth showing).
+  // Cancelled variants are intentionally NOT surfaced so the slot stays free/rebookable.
   const agendaSlots: AgendaSlot[] = slots.map((slot) => {
     const key = `${slot.date}|${slot.start_time.slice(0, 5)}|${slot.barber_id ?? ''}`
     const candidates = apptMap.get(key) ?? []
     const confirmed  = candidates.find((a) => a.status === 'confirmed') ?? null
-    const cancelled  = candidates.find((a) => a.status === 'cancelled') ?? null
-    return { slot, appointment: confirmed ?? cancelled }
+    const completed  = candidates.find((a) => a.status === 'completed') ?? null
+    const noShow     = candidates.find((a) => a.status === 'no_show') ?? null
+    return { slot, appointment: confirmed ?? completed ?? noShow }
   })
 
   // Group by date into AgendaDay[]
@@ -91,7 +94,8 @@ export async function GET(req: NextRequest) {
     for (const s of dSlots) {
       if (!s.slot.is_available)                               blockedCount++
       else if (s.appointment?.status === 'confirmed')         confirmedCount++
-      else                                                     freeCount++
+      else if (!s.appointment)                                freeCount++
+      // completed / no_show: surfaced but neither free nor confirmed
     }
     return {
       date,
