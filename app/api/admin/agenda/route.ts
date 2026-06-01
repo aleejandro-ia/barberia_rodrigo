@@ -42,8 +42,8 @@ export async function GET(req: NextRequest) {
 
   const { data: slotsRaw } = await slotsQuery
 
-  // Fetch all appointments (confirmed + cancelled) in range
-  const { data: apptRaw } = await supabase
+  // Fetch appointments scoped to same barber — prevents cross-barber bleed
+  let apptsQuery = supabase
     .from('appointments')
     .select('id, user_id, slot_date, slot_start_time, slot_end_time, client_name, client_phone, notes, status, created_at, barber_id')
     .gte('slot_date', from)
@@ -51,20 +51,25 @@ export async function GET(req: NextRequest) {
     .order('slot_date', { ascending: true })
     .order('slot_start_time', { ascending: true })
 
+  if (barber_id) apptsQuery = apptsQuery.eq('barber_id', barber_id)
+
+  const { data: apptRaw } = await apptsQuery
+
   const slots = (slotsRaw ?? []) as AvailabilitySlot[]
   const appts = (apptRaw ?? []) as Appointment[]
 
-  // Build a lookup: "date|start_time" → appointments[]
+  // Build a lookup: "date|start_time|barber_id" → appointments[]
+  // barber_id in key prevents a slot from one barber picking up another barber's appointment
   const apptMap = new Map<string, Appointment[]>()
   for (const a of appts) {
-    const key = `${a.slot_date}|${a.slot_start_time.slice(0, 5)}`
+    const key = `${a.slot_date}|${a.slot_start_time.slice(0, 5)}|${a.barber_id ?? ''}`
     if (!apptMap.has(key)) apptMap.set(key, [])
     apptMap.get(key)!.push(a)
   }
 
   // Join: each slot gets its best appointment (confirmed > cancelled > null)
   const agendaSlots: AgendaSlot[] = slots.map((slot) => {
-    const key = `${slot.date}|${slot.start_time.slice(0, 5)}`
+    const key = `${slot.date}|${slot.start_time.slice(0, 5)}|${slot.barber_id ?? ''}`
     const candidates = apptMap.get(key) ?? []
     const confirmed  = candidates.find((a) => a.status === 'confirmed') ?? null
     const cancelled  = candidates.find((a) => a.status === 'cancelled') ?? null
