@@ -139,6 +139,22 @@ export default function NavBar() {
     )
   }
 
+  /* ─── Sign out circle (desktop, logged-in only) ─────────── */
+  function renderSignOutCircle(size: number = 16) {
+    if (!user) return null
+    return (
+      <button
+        style={{ ...userCircle, borderColor: 'rgba(201,169,110,0.4)' }}
+        onClick={handleSignOut}
+        aria-label="Cerrar sesión"
+        onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.7')}
+        onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
+      >
+        <SignOut size={size} weight="bold" />
+      </button>
+    )
+  }
+
   // All visible nav items for mobile overlay (with animated index)
   const mobileNavLinks = [
     ...navLinks,
@@ -175,6 +191,7 @@ export default function NavBar() {
             </a>
             {renderUserCircle(16)}
             {renderAdminCircle(16)}
+            <span className="hidden md:contents">{renderSignOutCircle(16)}</span>
           </div>
 
           {/* ── CENTER: nav links + conditional Galería (desktop) ─ */}
