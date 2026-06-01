@@ -36,7 +36,7 @@ export async function adminCreateAppointment(
   // Slot must exist and be available — filter by barber_id if provided
   let slotQuery = supabase
     .from('availability_slots')
-    .select('id')
+    .select('id, barber_id')
     .eq('date', slot_date)
     .eq('start_time', slot_start_time)
     .eq('is_available', true)
@@ -45,14 +45,17 @@ export async function adminCreateAppointment(
 
   if (!slot) return { error: 'SLOT_NOT_FOUND' }
 
-  // No confirmed appointment already on that slot (for this barber)
+  // Authoritative barber = the slot's own barber (never trust a missing client value)
+  const effectiveBarberId = barber_id ?? slot.barber_id ?? null
+
+  // No confirmed appointment already on that slot, scoped to the slot's barber
   let existQuery = supabase
     .from('appointments')
     .select('id')
     .eq('slot_date', slot_date)
     .eq('slot_start_time', slot_start_time)
     .eq('status', 'confirmed')
-  if (barber_id) existQuery = existQuery.eq('barber_id', barber_id)
+  if (effectiveBarberId) existQuery = existQuery.eq('barber_id', effectiveBarberId)
   const { data: existing } = await existQuery.maybeSingle()
 
   if (existing) return { error: 'SLOT_TAKEN' }
@@ -64,7 +67,7 @@ export async function adminCreateAppointment(
       slot_date,
       slot_start_time,
       slot_end_time,
-      barber_id: barber_id ?? null,
+      barber_id: effectiveBarberId,
       client_name,
       client_phone,
       notes: notes ?? null,
@@ -296,6 +299,7 @@ export async function adminMarkNoShow(
   await supabase.from('appointments').update({ status: 'no_show' }).eq('id', appointmentId)
 
   revalidate()
+  revalidatePath('/mis-citas')
   return { success: true }
 }
 
@@ -321,6 +325,7 @@ export async function adminMarkCompleted(
   }).eq('id', appointmentId)
 
   revalidate()
+  revalidatePath('/mis-citas')
   return { success: true }
 }
 
