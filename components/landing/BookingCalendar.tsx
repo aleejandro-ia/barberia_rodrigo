@@ -99,11 +99,11 @@ export default function BookingCalendar({
         <div className="text-center">
           <p
             className="text-base font-semibold capitalize tracking-wide"
-            style={{ color: '#F2EDE7' }}
+            style={{ color: '#1A1512' }}
           >
             {format(currentMonth, 'MMMM', { locale: es })}
           </p>
-          <p className="text-sm mt-0.5" style={{ color: '#5A5450' }}>
+          <p className="text-sm mt-0.5" style={{ color: '#7A7068' }}>
             {format(currentMonth, 'yyyy')}
           </p>
         </div>
@@ -137,7 +137,7 @@ export default function BookingCalendar({
           <div
             key={d}
             className="text-center py-1"
-            style={{ color: '#4A4540', fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.06em' }}
+            style={{ color: '#8A8078', fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.06em' }}
           >
             {d}
           </div>
@@ -149,7 +149,7 @@ export default function BookingCalendar({
         {loading && (
           <div
             className="absolute inset-0 rounded-2xl flex items-center justify-center z-10"
-            style={{ backgroundColor: 'rgba(22,19,16,0.85)' }}
+            style={{ backgroundColor: 'rgba(248,245,240,0.85)' }}
           >
             <div
               className="w-5 h-5 rounded-full border-2 animate-spin"
@@ -189,10 +189,10 @@ export default function BookingCalendar({
                 color: isSelected
                   ? '#0E0B08'
                   : isPast
-                    ? '#2A2520'
+                    ? '#C8C0B8'
                     : isAvailable
-                      ? '#F2EDE7'
-                      : '#3A3530',
+                      ? '#1A1512'
+                      : '#A8A098',
                 cursor: isClickable ? 'pointer' : 'default',
                 border:
                   isToday && !isSelected

@@ -1116,8 +1116,8 @@ export default function BookingSection() {
                   {/* Calendar */}
                   <div
                     style={{
-                      backgroundColor: '#161310',
-                      border: '1px solid rgba(201,169,110,0.12)',
+                      backgroundColor: '#F8F5F0',
+                      border: '1px solid rgba(201,169,110,0.15)',
                       borderRadius: 20,
                       padding: '24px',
                     }}

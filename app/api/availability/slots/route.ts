@@ -20,7 +20,8 @@ export async function GET(request: NextRequest) {
     .eq('is_available', true)
     .order('start_time', { ascending: true })
 
-  if (barber_id) query = query.eq('barber_id', barber_id)
+  // null barber_id slots are shared (any barber) — always include them
+  if (barber_id) query = query.or(`barber_id.eq.${barber_id},barber_id.is.null`)
 
   const { data: slots } = await query
 
