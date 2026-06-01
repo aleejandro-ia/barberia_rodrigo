@@ -29,29 +29,31 @@ export async function adminCreateAppointment(
   const parsed = adminCreateAppointmentSchema.safeParse(data)
   if (!parsed.success) return { error: 'VALIDATION_ERROR' }
 
-  const { slot_date, slot_start_time, slot_end_time, client_name, client_phone, notes } = parsed.data
+  const { slot_date, slot_start_time, slot_end_time, barber_id, client_name, client_phone, notes } = parsed.data
 
   const supabase = await createClient()
 
-  // Slot must exist and be available
-  const { data: slot } = await supabase
+  // Slot must exist and be available — filter by barber_id if provided
+  let slotQuery = supabase
     .from('availability_slots')
     .select('id')
     .eq('date', slot_date)
     .eq('start_time', slot_start_time)
     .eq('is_available', true)
-    .maybeSingle()
+  if (barber_id) slotQuery = slotQuery.eq('barber_id', barber_id)
+  const { data: slot } = await slotQuery.maybeSingle()
 
   if (!slot) return { error: 'SLOT_NOT_FOUND' }
 
-  // No confirmed appointment already on that slot
-  const { data: existing } = await supabase
+  // No confirmed appointment already on that slot (for this barber)
+  let existQuery = supabase
     .from('appointments')
     .select('id')
     .eq('slot_date', slot_date)
     .eq('slot_start_time', slot_start_time)
     .eq('status', 'confirmed')
-    .maybeSingle()
+  if (barber_id) existQuery = existQuery.eq('barber_id', barber_id)
+  const { data: existing } = await existQuery.maybeSingle()
 
   if (existing) return { error: 'SLOT_TAKEN' }
 
@@ -62,6 +64,7 @@ export async function adminCreateAppointment(
       slot_date,
       slot_start_time,
       slot_end_time,
+      barber_id: barber_id ?? null,
       client_name,
       client_phone,
       notes: notes ?? null,

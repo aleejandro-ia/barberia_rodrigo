@@ -7,7 +7,7 @@ import AgendaWeekNav from '@/components/admin/agenda/AgendaWeekNav'
 import AgendaWeekGrid from '@/components/admin/agenda/AgendaWeekGrid'
 import AgendaDayPanel from '@/components/admin/agenda/AgendaDayPanel'
 import AgendaModal, { type AgendaModalMode } from '@/components/admin/agenda/AgendaModal'
-import type { AgendaDay, AvailabilitySlot, Appointment } from '@/types'
+import type { AgendaDay, AvailabilitySlot, Appointment, Barber } from '@/types'
 
 function getWeekStart(date: Date): Date {
   return startOfWeek(date, { weekStartsOn: 1 })
@@ -24,6 +24,21 @@ export default function AgendaPage() {
   const [selectedDate, setSelectedDate] = useState<string | null>(() => format(new Date(), 'yyyy-MM-dd'))
   const [modalMode,    setModalMode]    = useState<AgendaModalMode>({ type: 'closed' })
 
+  // Barber selector
+  const [barbers,          setBarbers]          = useState<Barber[]>([])
+  const [selectedBarberId, setSelectedBarberId] = useState<string>('')
+
+  useEffect(() => {
+    fetch('/api/barbers')
+      .then(r => r.json())
+      .then(data => {
+        const list: Barber[] = data.barbers ?? []
+        setBarbers(list)
+        if (list.length > 0) setSelectedBarberId(list[0].id)
+      })
+      .catch(() => {})
+  }, [])
+
   const weekLabel = (() => {
     const end = weekEndDate(weekStart)
     const sameMonth = weekStart.getMonth() === end.getMonth()
@@ -34,11 +49,12 @@ export default function AgendaPage() {
   })()
 
   const fetchWeek = useCallback(async () => {
+    if (!selectedBarberId) return
     setLoading(true)
     try {
       const from = format(weekStart, 'yyyy-MM-dd')
       const to   = format(weekEndDate(weekStart), 'yyyy-MM-dd')
-      const res  = await fetch(`/api/admin/agenda?from=${from}&to=${to}`)
+      const res  = await fetch(`/api/admin/agenda?from=${from}&to=${to}&barber_id=${selectedBarberId}`)
       if (!res.ok) throw new Error('fetch failed')
       const data = await res.json()
       setDays(data.days ?? [])
@@ -48,7 +64,7 @@ export default function AgendaPage() {
     } finally {
       setLoading(false)
     }
-  }, [weekStart])
+  }, [weekStart, selectedBarberId])
 
   useEffect(() => { fetchWeek() }, [fetchWeek])
 
@@ -66,6 +82,35 @@ export default function AgendaPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 md:px-6 py-6">
+
+      {/* ── Barber selector (only when 2+ barbers) ── */}
+      {barbers.length > 1 && (
+        <div
+          className="flex items-center gap-3 px-4 py-3 rounded-2xl mb-5"
+          style={{ backgroundColor: '#161310', border: '1px solid rgba(201,169,110,0.15)' }}
+        >
+          <span className="text-xs font-semibold uppercase tracking-widest flex-shrink-0" style={{ color: '#7A7268' }}>
+            Barbero
+          </span>
+          <div className="flex gap-2 flex-wrap">
+            {barbers.map(b => (
+              <button
+                key={b.id}
+                onClick={() => setSelectedBarberId(b.id)}
+                className="px-4 py-1.5 rounded-full text-sm font-medium transition-all"
+                style={{
+                  backgroundColor: selectedBarberId === b.id ? '#C9A96E' : 'rgba(201,169,110,0.08)',
+                  color: selectedBarberId === b.id ? '#0E0B08' : '#7A7268',
+                  border: `1px solid ${selectedBarberId === b.id ? '#C9A96E' : 'rgba(201,169,110,0.15)'}`,
+                }}
+              >
+                {b.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[1fr_380px] lg:gap-6 lg:items-start">
 
         {/* ── Left: navigation + week grid ─────────────────────── */}
@@ -129,6 +174,7 @@ export default function AgendaPage() {
         mode={modalMode}
         onClose={() => setModalMode({ type: 'closed' })}
         onSuccess={fetchWeek}
+        barberId={selectedBarberId}
       />
     </div>
   )

@@ -11,25 +11,26 @@ export interface ScheduleEntry {
   end_time: string   // 'HH:MM'
 }
 
-function generateSlots(date: string, start: string, end: string) {
-  const slots: { date: string; start_time: string; end_time: string; is_available: boolean }[] = []
+function generateSlots(date: string, start: string, end: string, barber_id: string) {
+  const slots: { date: string; barber_id: string; start_time: string; end_time: string; is_available: boolean }[] = []
   let current = start
   while (current < end) {
     const [h, m] = current.split(':').map(Number)
     const next = `${String(h + (m === 30 ? 1 : 0)).padStart(2, '0')}:${m === 30 ? '00' : '30'}`
     if (next > end) break
-    slots.push({ date, start_time: current, end_time: next, is_available: true })
+    slots.push({ date, barber_id, start_time: current, end_time: next, is_available: true })
     current = next
   }
   return slots
 }
 
-export async function getScheduleTemplate(): Promise<ScheduleEntry[]> {
+export async function getScheduleTemplate(barber_id?: string): Promise<ScheduleEntry[]> {
   const supabase = await createClient()
+  const key = barber_id ? `schedule_template_${barber_id}` : 'schedule_template'
   const { data } = await supabase
     .from('booking_settings')
     .select('value')
-    .eq('key', 'schedule_template')
+    .eq('key', key)
     .single()
   if (!data?.value) return []
   try {
@@ -40,7 +41,8 @@ export async function getScheduleTemplate(): Promise<ScheduleEntry[]> {
 }
 
 export async function saveScheduleTemplate(
-  template: ScheduleEntry[]
+  template: ScheduleEntry[],
+  barber_id?: string
 ): Promise<{ success: true } | { error: 'UNAUTHORIZED' | 'VALIDATION_ERROR' }> {
   const user = await getUser()
   if (!isAdmin(user)) return { error: 'UNAUTHORIZED' }
@@ -52,11 +54,12 @@ export async function saveScheduleTemplate(
     if (entry.start_time >= entry.end_time) return { error: 'VALIDATION_ERROR' }
   }
 
+  const key = barber_id ? `schedule_template_${barber_id}` : 'schedule_template'
   const supabase = await createClient()
   await supabase
     .from('booking_settings')
     .upsert(
-      { key: 'schedule_template', value: JSON.stringify(template), updated_at: new Date().toISOString() },
+      { key, value: JSON.stringify(template), updated_at: new Date().toISOString() },
       { onConflict: 'key' }
     )
 
@@ -67,15 +70,17 @@ export async function saveScheduleTemplate(
 
 export async function generateSlotsFromTemplate(
   startDate: string,
-  weeks: number
+  weeks: number,
+  barber_id?: string
 ): Promise<{ created: number; skipped: number } | { error: 'UNAUTHORIZED' | 'NO_TEMPLATE' | 'VALIDATION_ERROR' }> {
   const user = await getUser()
   if (!isAdmin(user)) return { error: 'UNAUTHORIZED' }
 
   if (!startDate || !/^\d{4}-\d{2}-\d{2}$/.test(startDate)) return { error: 'VALIDATION_ERROR' }
   if (!weeks || weeks < 1 || weeks > 52) return { error: 'VALIDATION_ERROR' }
+  if (!barber_id) return { error: 'VALIDATION_ERROR' }
 
-  const template = await getScheduleTemplate()
+  const template = await getScheduleTemplate(barber_id)
   if (!template || template.length === 0) return { error: 'NO_TEMPLATE' }
 
   const supabase = await createClient()
@@ -92,12 +97,12 @@ export async function generateSlotsFromTemplate(
     const match = template.find((t) => t.day === dayOfWeek)
     if (!match) continue
 
-    const slots = generateSlots(dateStr, match.start_time, match.end_time)
+    const slots = generateSlots(dateStr, match.start_time, match.end_time, barber_id)
     if (slots.length === 0) continue
 
     const { data } = await supabase
       .from('availability_slots')
-      .upsert(slots, { onConflict: 'date,start_time', ignoreDuplicates: true })
+      .upsert(slots, { onConflict: 'date,start_time,barber_id', ignoreDuplicates: true })
       .select()
 
     const inserted = data?.length ?? 0

@@ -27,8 +27,8 @@ export async function GET(request: NextRequest) {
     .gte('date', startDate < today ? today : startDate)
     .lt('date', nextMonth)
 
-  // null barber_id slots are shared (any barber) — always include them
-  if (barber_id) slotsQuery = slotsQuery.or(`barber_id.eq.${barber_id},barber_id.is.null`)
+  // Each barber has their own slots — filter strictly by barber_id
+  if (barber_id) slotsQuery = slotsQuery.eq('barber_id', barber_id)
 
   const { data: slots } = await slotsQuery
 

@@ -12,6 +12,7 @@ import {
 
 interface Props {
   defaultDate?: string
+  barberId: string
   onCreated?: () => void
 }
 
@@ -27,7 +28,7 @@ const inputStyle: React.CSSProperties = {
   transition: 'border-color 0.15s',
 }
 
-export default function SlotBulkCreator({ defaultDate = '', onCreated }: Props) {
+export default function SlotBulkCreator({ defaultDate = '', barberId, onCreated }: Props) {
   const [date, setDate] = useState(defaultDate)
   const [fromTime, setFromTime] = useState('09:00')
   const [toTime, setToTime] = useState('13:00')
@@ -42,6 +43,7 @@ export default function SlotBulkCreator({ defaultDate = '', onCreated }: Props) 
     try {
       const res = await bulkCreateSlots({
         date,
+        barber_id: barberId,
         from_time: fromTime,
         to_time: toTime,
         slot_duration: parseInt(duration, 10),

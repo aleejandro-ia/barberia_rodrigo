@@ -42,6 +42,7 @@ interface AgendaModalProps {
   mode:      AgendaModalMode
   onClose:   () => void
   onSuccess: () => void
+  barberId?: string
 }
 
 /* ─── Shared input style ─────────────────────────────────────── */
@@ -130,6 +131,7 @@ function CreateAppointmentForm({ slot, onClose, onSuccess }: {
       slot_date:       slot.date,
       slot_start_time: slot.start_time.slice(0, 5),
       slot_end_time:   slot.end_time.slice(0, 5),
+      barber_id:       slot.barber_id ?? undefined,
       client_name:     name.trim(),
       client_phone:    phone,
       notes:           notes.trim() || undefined,
@@ -699,7 +701,7 @@ const TITLES: Partial<Record<AgendaModalMode['type'], string>> = {
   'client-history':        'Historial de cliente',
 }
 
-export default function AgendaModal({ mode, onClose, onSuccess }: AgendaModalProps) {
+export default function AgendaModal({ mode, onClose, onSuccess, barberId }: AgendaModalProps) {
   const open = mode.type !== 'closed'
 
   function handleSuccess() {
@@ -734,8 +736,8 @@ export default function AgendaModal({ mode, onClose, onSuccess }: AgendaModalPro
         {mode.type === 'edit-slot-times' && (
           <EditSlotTimesForm slot={mode.slot} onClose={onClose} onSuccess={handleSuccess} />
         )}
-        {mode.type === 'bulk-creator' && (
-          <SlotBulkCreator defaultDate={mode.date} onCreated={handleSuccess} />
+        {mode.type === 'bulk-creator' && barberId && (
+          <SlotBulkCreator defaultDate={mode.date} barberId={barberId} onCreated={handleSuccess} />
         )}
         {mode.type === 'reschedule-appointment' && (
           <RescheduleAppointmentForm appointment={mode.appointment} onClose={onClose} onSuccess={handleSuccess} />

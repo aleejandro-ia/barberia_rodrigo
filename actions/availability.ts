@@ -12,7 +12,7 @@ export async function createAvailabilitySlots(data: unknown) {
   const parsed = createSlotsSchema.safeParse(data)
   if (!parsed.success) return { error: 'VALIDATION_ERROR' as const }
 
-  const { date, slots } = parsed.data
+  const { date, barber_id, slots } = parsed.data
 
   // Reject past dates
   const today = new Date().toISOString().split('T')[0]
@@ -21,6 +21,7 @@ export async function createAvailabilitySlots(data: unknown) {
   const supabase = await createClient()
   const rows = slots.map((s) => ({
     date,
+    barber_id,
     start_time: s.start_time,
     end_time: s.end_time,
   }))
@@ -42,14 +43,14 @@ export async function bulkCreateSlots(data: unknown) {
   const parsed = bulkCreateSlotsSchema.safeParse(data)
   if (!parsed.success) return { error: 'VALIDATION_ERROR' as const }
 
-  const { date, from_time, to_time, slot_duration } = parsed.data
+  const { date, barber_id, from_time, to_time, slot_duration } = parsed.data
 
   // Reject past dates
   const today = new Date().toISOString().split('T')[0]
   if (date < today) return { error: 'VALIDATION_ERROR' as const }
 
   // Generate slots
-  const slots: Array<{ date: string; start_time: string; end_time: string }> = []
+  const slots: Array<{ date: string; barber_id: string; start_time: string; end_time: string }> = []
   const [fromH, fromM] = from_time.split(':').map(Number)
   const [toH, toM] = to_time.split(':').map(Number)
   let current = fromH * 60 + fromM
@@ -63,6 +64,7 @@ export async function bulkCreateSlots(data: unknown) {
     const endMin = (endTotal % 60).toString().padStart(2, '0')
     slots.push({
       date,
+      barber_id,
       start_time: `${startH}:${startMin}`,
       end_time: `${endH}:${endMin}`,
     })
@@ -74,7 +76,7 @@ export async function bulkCreateSlots(data: unknown) {
   const supabase = await createClient()
   const { error } = await supabase
     .from('availability_slots')
-    .upsert(slots, { onConflict: 'date,start_time', ignoreDuplicates: true })
+    .upsert(slots, { onConflict: 'date,start_time,barber_id', ignoreDuplicates: true })
 
   if (error) return { error: 'VALIDATION_ERROR' as const }
   revalidatePath('/admin/schedule')

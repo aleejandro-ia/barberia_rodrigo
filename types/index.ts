@@ -35,6 +35,7 @@ export interface AvailabilitySlot {
   start_time: string
   end_time: string
   is_available: boolean
+  barber_id?: string | null
   blocked_reason?: string | null
   updated_at?: string
 }

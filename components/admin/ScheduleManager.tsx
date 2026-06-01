@@ -13,6 +13,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import SlotBulkCreator from './SlotBulkCreator'
+import type { Barber } from '@/types'
 
 interface Slot {
   id: string
@@ -73,6 +74,11 @@ const sectionTitleStyle: React.CSSProperties = {
 }
 
 export default function ScheduleManager() {
+  // ── Barber selector ──
+  const [barbers, setBarbers] = useState<Barber[]>([])
+  const [selectedBarberId, setSelectedBarberId] = useState<string>('')
+  const [barbersLoading, setBarbersLoading] = useState(true)
+
   // ── Section 1: slots viewer ──
   const [date, setDate] = useState(todayStr())
   const [slots, setSlots] = useState<Slot[]>([])
@@ -86,7 +92,7 @@ export default function ScheduleManager() {
   const [templateEnabled, setTemplateEnabled] = useState<Record<number, boolean>>({})
   const [templateStart, setTemplateStart] = useState<Record<number, string>>({})
   const [templateEnd, setTemplateEnd] = useState<Record<number, string>>({})
-  const [templateLoading, setTemplateLoading] = useState(true)
+  const [templateLoading, setTemplateLoading] = useState(false)
   const [savingTemplate, setSavingTemplate] = useState(false)
 
   // ── Section 3: generator ──
@@ -105,11 +111,31 @@ export default function ScheduleManager() {
     }
   }, [toast])
 
-  // Load template on mount
+  // Load barbers on mount
   useEffect(() => {
-    async function loadTemplate() {
+    async function loadBarbers() {
       try {
-        const entries = await getScheduleTemplate()
+        const res = await fetch('/api/barbers')
+        const data = await res.json()
+        const list: Barber[] = data.barbers ?? []
+        setBarbers(list)
+        if (list.length > 0) setSelectedBarberId(list[0].id)
+      } catch {
+        // silent
+      } finally {
+        setBarbersLoading(false)
+      }
+    }
+    loadBarbers()
+  }, [])
+
+  // Load template when barber changes
+  useEffect(() => {
+    if (!selectedBarberId) return
+    async function loadTemplate() {
+      setTemplateLoading(true)
+      try {
+        const entries = await getScheduleTemplate(selectedBarberId)
         const enabled: Record<number, boolean> = {}
         const starts: Record<number, string> = {}
         const ends: Record<number, string> = {}
@@ -128,15 +154,21 @@ export default function ScheduleManager() {
       }
     }
     loadTemplate()
-  }, [])
+  }, [selectedBarberId])
+
+  // Reload slots when barber changes
+  useEffect(() => {
+    if (selectedBarberId && date) fetchSlots(date)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedBarberId])
 
   // ── Section 1 handlers ──
   const fetchSlots = useCallback(async (d: string) => {
-    if (!d) return
+    if (!d || !selectedBarberId) return
     setSlotsLoading(true)
     setSlotsError(null)
     try {
-      const res = await fetch(`/api/availability/slots?date=${d}`)
+      const res = await fetch(`/api/availability/slots?date=${d}&barber_id=${selectedBarberId}`)
       if (!res.ok) throw new Error('Error')
       const data = await res.json()
       setSlots(data.slots ?? [])
@@ -145,7 +177,7 @@ export default function ScheduleManager() {
     } finally {
       setSlotsLoading(false)
     }
-  }, [])
+  }, [selectedBarberId])
 
   function handleDateChange(e: React.ChangeEvent<HTMLInputElement>) {
     const d = e.target.value
@@ -179,6 +211,7 @@ export default function ScheduleManager() {
 
   // ── Section 2 handler ──
   async function handleSaveTemplate() {
+    if (!selectedBarberId) return
     setSavingTemplate(true)
     const template: ScheduleEntry[] = DAY_ORDER.filter((d) => templateEnabled[d]).map((d) => ({
       day: d,
@@ -186,7 +219,7 @@ export default function ScheduleManager() {
       end_time: templateEnd[d] ?? '18:00',
     }))
     try {
-      const result = await saveScheduleTemplate(template)
+      const result = await saveScheduleTemplate(template, selectedBarberId)
       if ('error' in result) {
         const msg =
           result.error === 'UNAUTHORIZED'
@@ -205,15 +238,16 @@ export default function ScheduleManager() {
 
   // ── Section 3 handler ──
   async function handleGenerate() {
+    if (!selectedBarberId) return
     setGenerating(true)
     try {
-      const result = await generateSlotsFromTemplate(genStartDate, parseInt(genWeeks, 10))
+      const result = await generateSlotsFromTemplate(genStartDate, parseInt(genWeeks, 10), selectedBarberId)
       if ('error' in result) {
         const msg =
           result.error === 'UNAUTHORIZED'
             ? 'Sin permisos de administrador.'
             : result.error === 'NO_TEMPLATE'
-              ? 'Primero configura la plantilla semanal.'
+              ? 'Primero configura la plantilla semanal para este barbero.'
               : 'Datos inválidos.'
         setToast({ msg, ok: false })
       } else {
@@ -227,9 +261,39 @@ export default function ScheduleManager() {
     }
   }
 
+  const multiBarber = barbers.length > 1
+
   return (
     <>
       <div className="flex flex-col gap-6">
+
+        {/* ── Barber selector (only when 2+ barbers) ── */}
+        {!barbersLoading && multiBarber && (
+          <div
+            className="flex items-center gap-3 px-4 py-3 rounded-2xl"
+            style={{ backgroundColor: '#161310', border: '1px solid rgba(201,169,110,0.15)' }}
+          >
+            <span className="text-xs font-semibold uppercase tracking-widest flex-shrink-0" style={{ color: '#7A7268' }}>
+              Barbero
+            </span>
+            <div className="flex gap-2 flex-wrap">
+              {barbers.map(b => (
+                <button
+                  key={b.id}
+                  onClick={() => setSelectedBarberId(b.id)}
+                  className="px-4 py-1.5 rounded-full text-sm font-medium transition-all"
+                  style={{
+                    backgroundColor: selectedBarberId === b.id ? '#C9A96E' : 'rgba(201,169,110,0.08)',
+                    color: selectedBarberId === b.id ? '#0E0B08' : '#7A7268',
+                    border: `1px solid ${selectedBarberId === b.id ? '#C9A96E' : 'rgba(201,169,110,0.15)'}`,
+                  }}
+                >
+                  {b.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* ── Section 1: Franjas por fecha ── */}
         <div style={cardStyle}>
@@ -246,7 +310,9 @@ export default function ScheduleManager() {
             />
           </div>
 
-          {slotsLoading ? (
+          {!selectedBarberId ? (
+            <p className="text-sm py-4" style={{ color: '#4A4540' }}>Cargando barberos…</p>
+          ) : slotsLoading ? (
             <div className="flex items-center gap-2 py-4">
               <div
                 className="w-4 h-4 rounded-full border-2 animate-spin"
@@ -382,13 +448,13 @@ export default function ScheduleManager() {
 
           <button
             onClick={handleSaveTemplate}
-            disabled={savingTemplate || templateLoading}
+            disabled={savingTemplate || templateLoading || !selectedBarberId}
             className="py-3 px-6 rounded-full text-sm font-semibold transition-all"
             style={{
               backgroundColor:
-                !savingTemplate && !templateLoading ? '#C9A96E' : 'rgba(201,169,110,0.15)',
-              color: !savingTemplate && !templateLoading ? '#0E0B08' : '#4A4540',
-              cursor: !savingTemplate && !templateLoading ? 'pointer' : 'not-allowed',
+                !savingTemplate && !templateLoading && selectedBarberId ? '#C9A96E' : 'rgba(201,169,110,0.15)',
+              color: !savingTemplate && !templateLoading && selectedBarberId ? '#0E0B08' : '#4A4540',
+              cursor: !savingTemplate && !templateLoading && selectedBarberId ? 'pointer' : 'not-allowed',
               minHeight: '44px',
             }}
           >
@@ -435,13 +501,13 @@ export default function ScheduleManager() {
 
           <button
             onClick={handleGenerate}
-            disabled={generating || !genStartDate}
+            disabled={generating || !genStartDate || !selectedBarberId}
             className="py-3 px-6 rounded-full text-sm font-semibold transition-all"
             style={{
               backgroundColor:
-                !generating && genStartDate ? '#C9A96E' : 'rgba(201,169,110,0.15)',
-              color: !generating && genStartDate ? '#0E0B08' : '#4A4540',
-              cursor: !generating && genStartDate ? 'pointer' : 'not-allowed',
+                !generating && genStartDate && selectedBarberId ? '#C9A96E' : 'rgba(201,169,110,0.15)',
+              color: !generating && genStartDate && selectedBarberId ? '#0E0B08' : '#4A4540',
+              cursor: !generating && genStartDate && selectedBarberId ? 'pointer' : 'not-allowed',
               minHeight: '44px',
             }}
           >
@@ -462,7 +528,15 @@ export default function ScheduleManager() {
         {/* ── Section 4: Creación manual ── */}
         <div style={cardStyle}>
           <h2 style={sectionTitleStyle}>Creación manual</h2>
-          <SlotBulkCreator defaultDate={date} onCreated={() => fetchSlots(date)} />
+          {selectedBarberId ? (
+            <SlotBulkCreator
+              defaultDate={date}
+              barberId={selectedBarberId}
+              onCreated={() => fetchSlots(date)}
+            />
+          ) : (
+            <p className="text-sm py-2" style={{ color: '#4A4540' }}>Cargando barberos…</p>
+          )}
         </div>
       </div>
 

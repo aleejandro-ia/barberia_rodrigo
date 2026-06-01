@@ -8,8 +8,9 @@ export async function GET(req: NextRequest) {
   if (!isAdmin(user)) return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 })
 
   const { searchParams } = req.nextUrl
-  const from = searchParams.get('from')
-  const to   = searchParams.get('to')
+  const from      = searchParams.get('from')
+  const to        = searchParams.get('to')
+  const barber_id = searchParams.get('barber_id')
 
   if (!from || !to) return NextResponse.json({ error: 'MISSING_PARAMS' }, { status: 400 })
 
@@ -29,13 +30,17 @@ export async function GET(req: NextRequest) {
   const supabase = await createClient()
 
   // Fetch ALL slots (including blocked/unavailable) for admin view
-  const { data: slotsRaw } = await supabase
+  let slotsQuery = supabase
     .from('availability_slots')
-    .select('id, date, start_time, end_time, is_available, blocked_reason, updated_at, created_at')
+    .select('id, date, start_time, end_time, is_available, blocked_reason, updated_at, created_at, barber_id')
     .gte('date', from)
     .lte('date', to)
     .order('date', { ascending: true })
     .order('start_time', { ascending: true })
+
+  if (barber_id) slotsQuery = slotsQuery.eq('barber_id', barber_id)
+
+  const { data: slotsRaw } = await slotsQuery
 
   // Fetch all appointments (confirmed + cancelled) in range
   const { data: apptRaw } = await supabase
