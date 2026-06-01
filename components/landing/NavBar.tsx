@@ -16,13 +16,28 @@ const navLinks = [
   { label: 'Reservar', href: '#reservar' },
 ]
 
+/* ─── Shared gold-pill icon button style ─────────────────────── */
+const goldPill: React.CSSProperties = {
+  display:        'flex',
+  alignItems:     'center',
+  justifyContent: 'center',
+  backgroundColor: '#C9A96E',
+  color:          '#0E0B08',
+  borderRadius:   '9999px',
+  padding:        '7px 10px',
+  border:         'none',
+  cursor:         'pointer',
+  transition:     'opacity 0.2s',
+  flexShrink:     0,
+}
+
 export default function NavBar() {
-  const [scrolled, setScrolled] = useState(false)
-  const [menuOpen, setMenuOpen] = useState(false)
-  const [user, setUser] = useState<SupabaseUser | null>(null)
-  const [isAdmin, setIsAdmin] = useState(false)
-  const [authModalOpen, setAuthModalOpen] = useState(false)
-  const [appointmentModalOpen, setAppointmentModalOpen] = useState(false)
+  const [scrolled,              setScrolled]              = useState(false)
+  const [menuOpen,              setMenuOpen]              = useState(false)
+  const [user,                  setUser]                  = useState<SupabaseUser | null>(null)
+  const [isAdmin,               setIsAdmin]               = useState(false)
+  const [authModalOpen,         setAuthModalOpen]         = useState(false)
+  const [appointmentModalOpen,  setAppointmentModalOpen]  = useState(false)
   const shouldReduceMotion = useReducedMotion()
 
   useEffect(() => {
@@ -47,7 +62,7 @@ export default function NavBar() {
 
   async function checkAdmin() {
     try {
-      const res = await fetch('/api/auth/is-admin')
+      const res  = await fetch('/api/auth/is-admin')
       const data = await res.json()
       setIsAdmin(!!data.isAdmin)
     } catch {
@@ -69,6 +84,47 @@ export default function NavBar() {
     setAppointmentModalOpen(false)
   }
 
+  /* ─── Mobile user icon action ─────────────────────────────── */
+  function MobileUserIcon() {
+    if (!user) {
+      return (
+        <button
+          style={goldPill}
+          onClick={() => setAuthModalOpen(true)}
+          aria-label="Iniciar sesión"
+          onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.85')}
+          onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
+        >
+          <User size={16} weight="bold" />
+        </button>
+      )
+    }
+    if (isAdmin) {
+      return (
+        <Link
+          href="/admin"
+          style={goldPill}
+          aria-label="Panel Admin"
+          onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.opacity = '0.85')}
+          onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.opacity = '1')}
+        >
+          <User size={16} weight="bold" />
+        </Link>
+      )
+    }
+    return (
+      <Link
+        href="/mis-citas"
+        style={goldPill}
+        aria-label="Mis citas"
+        onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.opacity = '0.85')}
+        onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.opacity = '1')}
+      >
+        <CalendarBlank size={16} weight="bold" />
+      </Link>
+    )
+  }
+
   return (
     <>
       <motion.nav
@@ -79,12 +135,12 @@ export default function NavBar() {
         aria-label="Navegación principal"
       >
         <div
-          className="flex items-center justify-between px-5 py-3 rounded-full transition-all duration-300"
+          className="flex items-center justify-between px-4 py-2.5 rounded-full transition-all duration-300"
           style={{
-            background: scrolled ? 'rgba(14,11,8,0.88)' : 'rgba(14,11,8,0.45)',
-            backdropFilter: scrolled ? 'blur(20px)' : 'blur(8px)',
-            WebkitBackdropFilter: scrolled ? 'blur(20px)' : 'blur(8px)',
-            border: '1px solid rgba(201,169,110,0.12)',
+            background:          scrolled ? 'rgba(14,11,8,0.88)' : 'rgba(14,11,8,0.45)',
+            backdropFilter:      scrolled ? 'blur(20px)' : 'blur(8px)',
+            WebkitBackdropFilter:scrolled ? 'blur(20px)' : 'blur(8px)',
+            border:              '1px solid rgba(201,169,110,0.12)',
           }}
         >
           {/* Logo */}
@@ -97,14 +153,14 @@ export default function NavBar() {
             R.
           </a>
 
-          {/* Desktop links */}
-          <div className="hidden md:flex items-center gap-1">
+          {/* ── Desktop links ──────────────────────────────────── */}
+          <div className="hidden md:flex items-center gap-0.5">
             {navLinks.map((link) => (
               <a
                 key={link.href}
                 href={link.href}
                 onClick={(e) => { e.preventDefault(); handleNavClick(link.href) }}
-                className="px-4 py-1.5 rounded-full text-base font-medium transition-colors duration-200"
+                className="px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200"
                 style={{ color: '#888' }}
                 onMouseEnter={(e) => (e.currentTarget.style.color = '#F2EDE7')}
                 onMouseLeave={(e) => (e.currentTarget.style.color = '#888')}
@@ -113,80 +169,83 @@ export default function NavBar() {
               </a>
             ))}
 
-            {/* Mis citas — only when logged in */}
-            {user && (
+            {/* Mis citas — solo usuario normal logueado (admin usa /admin/agenda) */}
+            {user && !isAdmin && (
               <Link
                 href="/mis-citas"
-                className="ml-1 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-base font-medium transition-all duration-200"
+                className="ml-1 flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium transition-all duration-200"
                 style={{ color: '#C9A96E', border: '1px solid rgba(201,169,110,0.25)', backgroundColor: 'rgba(201,169,110,0.06)' }}
                 onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(201,169,110,0.12)')}
                 onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'rgba(201,169,110,0.06)')}
               >
-                <CalendarBlank size={14} weight="duotone" />
+                <CalendarBlank size={13} weight="duotone" />
                 Mis citas
               </Link>
             )}
 
-            {/* Admin button — only visible when logged in as admin */}
+            {/* Admin pill */}
             {isAdmin && (
               <Link
                 href="/admin"
-                className="ml-1 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-semibold uppercase tracking-widest transition-all duration-200"
+                className="ml-1 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-widest transition-all duration-200"
                 style={{ color: '#0E0B08', backgroundColor: '#C9A96E' }}
                 onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.85')}
                 onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
               >
-                ⚙ Admin
+                Panel Admin
               </Link>
             )}
 
+            {/* User / SignOut — gold pill */}
             {user ? (
               <button
                 onClick={handleSignOut}
-                className="ml-1 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm transition-colors duration-200"
-                style={{ color: '#555' }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = '#F2EDE7')}
-                onMouseLeave={(e) => (e.currentTarget.style.color = '#555')}
+                style={{ ...goldPill, marginLeft: 4 }}
                 title="Cerrar sesión"
+                onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.85')}
+                onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
               >
-                <SignOut size={14} />
+                <SignOut size={14} weight="bold" />
               </button>
             ) : (
               <button
                 onClick={() => setAuthModalOpen(true)}
-                className="ml-1 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm transition-colors duration-200"
-                style={{ color: '#555' }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = '#F2EDE7')}
-                onMouseLeave={(e) => (e.currentTarget.style.color = '#555')}
+                style={{ ...goldPill, marginLeft: 4 }}
                 title="Iniciar sesión"
+                onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.85')}
+                onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
               >
-                <User size={14} />
+                <User size={14} weight="bold" />
               </button>
             )}
 
+            {/* CTA */}
             <a
               href="#reservar"
               onClick={(e) => { e.preventDefault(); handleNavClick('#reservar') }}
-              className="ml-2 px-5 py-2 rounded-full text-base font-semibold transition-opacity duration-200 hover:opacity-90"
+              className="ml-1 px-4 py-1.5 rounded-full text-sm font-semibold transition-opacity duration-200 hover:opacity-90"
               style={{ backgroundColor: '#C9A96E', color: '#0E0B08' }}
             >
               Reservar cita
             </a>
           </div>
 
-          {/* Mobile hamburger */}
-          <button
-            className="md:hidden p-1.5 rounded-full transition-colors"
-            style={{ color: '#F2EDE7' }}
-            onClick={() => setMenuOpen(!menuOpen)}
-            aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'}
-          >
-            {menuOpen ? <X size={22} weight="bold" /> : <List size={22} weight="bold" />}
-          </button>
+          {/* ── Mobile top bar: user icon + hamburger ─────────── */}
+          <div className="md:hidden flex items-center gap-2">
+            <MobileUserIcon />
+            <button
+              className="p-1.5 rounded-full transition-colors"
+              style={{ color: '#F2EDE7' }}
+              onClick={() => setMenuOpen(!menuOpen)}
+              aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'}
+            >
+              {menuOpen ? <X size={22} weight="bold" /> : <List size={22} weight="bold" />}
+            </button>
+          </div>
         </div>
       </motion.nav>
 
-      {/* Mobile overlay */}
+      {/* ── Mobile overlay (sin cambios) ───────────────────────── */}
       <AnimatePresence>
         {menuOpen && (
           <motion.div
@@ -213,7 +272,7 @@ export default function NavBar() {
                 </motion.a>
               ))}
 
-              {user && (
+              {user && !isAdmin && (
                 <motion.div
                   initial={shouldReduceMotion ? false : { opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -235,7 +294,7 @@ export default function NavBar() {
                 <motion.div
                   initial={shouldReduceMotion ? false : { opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: (navLinks.length + 1) * 0.07, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                  transition={{ delay: (navLinks.length + (user ? 1 : 0)) * 0.07, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                 >
                   <Link
                     href="/admin"
@@ -243,8 +302,25 @@ export default function NavBar() {
                     className="flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-semibold uppercase tracking-widest"
                     style={{ backgroundColor: '#C9A96E', color: '#0E0B08' }}
                   >
-                    ⚙ Panel Admin
+                    Panel Admin
                   </Link>
+                </motion.div>
+              )}
+
+              {user && (
+                <motion.div
+                  initial={shouldReduceMotion ? false : { opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: (navLinks.length + 2) * 0.07, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                >
+                  <button
+                    onClick={() => { handleSignOut(); setMenuOpen(false) }}
+                    className="flex items-center gap-2 text-base font-medium transition-opacity hover:opacity-70"
+                    style={{ color: '#4A4540', background: 'none', border: 'none', cursor: 'pointer' }}
+                  >
+                    <SignOut size={16} />
+                    Cerrar sesión
+                  </button>
                 </motion.div>
               )}
 
@@ -252,7 +328,7 @@ export default function NavBar() {
                 href="#reservar"
                 initial={shouldReduceMotion ? false : { opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: (navLinks.length + 2) * 0.07, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                transition={{ delay: (navLinks.length + 3) * 0.07, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                 onClick={(e) => { e.preventDefault(); handleNavClick('#reservar') }}
                 className="mt-2 px-8 py-3 rounded-full text-base font-semibold"
                 style={{ backgroundColor: '#C9A96E', color: '#0E0B08' }}
