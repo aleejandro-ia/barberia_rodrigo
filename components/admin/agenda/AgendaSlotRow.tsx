@@ -17,6 +17,8 @@ interface AgendaSlotRowProps {
   onMarkNoShow?:            (appointment: Appointment) => void
   onMarkCompleted?:         (appointment: Appointment) => void
   onViewClientHistory?:     (appointment: Appointment) => void
+  barberMap?:               Map<string, string>
+  barberCount?:             number
 }
 
 function timeLabel(t: string) {
@@ -54,6 +56,8 @@ export default function AgendaSlotRow({
   onMarkNoShow,
   onMarkCompleted,
   onViewClientHistory,
+  barberMap,
+  barberCount = 0,
 }: AgendaSlotRowProps) {
   const { slot, appointment: appt } = agendaSlot
 
@@ -181,6 +185,22 @@ export default function AgendaSlotRow({
                 }}
               >
                 Walk-in
+              </span>
+            )}
+            {/* Barber badge — only when 2+ barbers and barber_id is set */}
+            {barberCount >= 2 && appt.barber_id && barberMap?.get(appt.barber_id) && (
+              <span
+                style={{
+                  backgroundColor: 'rgba(201,169,110,0.1)',
+                  color:           '#C9A96E',
+                  fontSize:        '0.65rem',
+                  padding:         '1px 6px',
+                  borderRadius:    9999,
+                  border:          '1px solid rgba(201,169,110,0.2)',
+                  flexShrink:      0,
+                }}
+              >
+                {barberMap.get(appt.barber_id)}
               </span>
             )}
             {/* Status badge for special statuses */}

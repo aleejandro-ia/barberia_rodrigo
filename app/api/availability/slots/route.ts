@@ -8,15 +8,21 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Missing or invalid date' }, { status: 400 })
   }
 
+  const barber_id = request.nextUrl.searchParams.get('barber_id')
+
   const supabase = await createClient()
 
   // Get all available slots for this date
-  const { data: slots } = await supabase
+  let query = supabase
     .from('availability_slots')
     .select('id, start_time, end_time')
     .eq('date', date)
     .eq('is_available', true)
     .order('start_time', { ascending: true })
+
+  if (barber_id) query = query.eq('barber_id', barber_id)
+
+  const { data: slots } = await query
 
   if (!slots || slots.length === 0) return NextResponse.json({ slots: [] })
 

@@ -8,6 +8,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Missing or invalid month' }, { status: 400 })
   }
 
+  const barber_id = request.nextUrl.searchParams.get('barber_id')
+
   const supabase = await createClient()
   const startDate = `${month}-01`
   const [year, mon] = month.split('-').map(Number)
@@ -18,12 +20,16 @@ export async function GET(request: NextRequest) {
   const today = new Date().toISOString().split('T')[0]
 
   // Fetch available slots WITH start_time so we can check per-slot availability
-  const { data: slots } = await supabase
+  let slotsQuery = supabase
     .from('availability_slots')
     .select('date, start_time')
     .eq('is_available', true)
     .gte('date', startDate < today ? today : startDate)
     .lt('date', nextMonth)
+
+  if (barber_id) slotsQuery = slotsQuery.eq('barber_id', barber_id)
+
+  const { data: slots } = await slotsQuery
 
   if (!slots || slots.length === 0) return NextResponse.json({ dates: [] })
 

@@ -12,7 +12,7 @@ import MonthCalNav        from '@/components/admin/agenda/MonthCalNav'
 import MonthlyCalendarGrid from '@/components/admin/agenda/MonthlyCalendarGrid'
 import AgendaDayPanel     from '@/components/admin/agenda/AgendaDayPanel'
 import AgendaModal, { type AgendaModalMode } from '@/components/admin/agenda/AgendaModal'
-import type { AgendaDay, AvailabilitySlot, Appointment } from '@/types'
+import type { AgendaDay, AvailabilitySlot, Appointment, Barber } from '@/types'
 
 function todayStr() {
   return format(new Date(), 'yyyy-MM-dd')
@@ -24,6 +24,8 @@ export default function AdminPage() {
   const [loading,      setLoading]      = useState(true)
   const [selectedDate, setSelectedDate] = useState<string | null>(() => todayStr())
   const [modalMode,    setModalMode]    = useState<AgendaModalMode>({ type: 'closed' })
+  const [barberMap,    setBarberMap]    = useState<Map<string, string>>(new Map())
+  const [barberCount,  setBarberCount]  = useState(0)
 
   /* ─── Fetch month data ─────────────────────────────────────── */
   const fetchMonth = useCallback(async (month: Date) => {
@@ -45,6 +47,20 @@ export default function AdminPage() {
   useEffect(() => {
     fetchMonth(currentMonth)
   }, [currentMonth, fetchMonth])
+
+  // Fetch barbers for badge display
+  useEffect(() => {
+    fetch('/api/barbers')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        const list: Barber[] = data?.barbers ?? []
+        setBarberCount(list.length)
+        const map = new Map<string, string>()
+        for (const b of list) map.set(b.id, b.name)
+        setBarberMap(map)
+      })
+      .catch(() => {/* silent */})
+  }, [])
 
   /* ─── Month navigation ─────────────────────────────────────── */
   const goToPrev  = () => setCurrentMonth((m) => subMonths(m, 1))
@@ -178,6 +194,8 @@ export default function AdminPage() {
             onMarkNoShow={openMarkNoShow}
             onMarkCompleted={openMarkCompleted}
             onViewClientHistory={openClientHistory}
+            barberMap={barberMap}
+            barberCount={barberCount}
           />
         </div>
       </div>
@@ -197,6 +215,8 @@ export default function AdminPage() {
             onMarkNoShow={openMarkNoShow}
             onMarkCompleted={openMarkCompleted}
             onViewClientHistory={openClientHistory}
+            barberMap={barberMap}
+            barberCount={barberCount}
           />
         )}
       </div>

@@ -26,6 +26,7 @@ export interface Appointment {
   completed_at?: string | null
   reminder_24h_sent_at?: string | null
   reminder_2h_sent_at?: string | null
+  barber_id?: string | null
 }
 
 export interface AvailabilitySlot {
@@ -91,6 +92,16 @@ export interface Service {
   name: string
   price_eur: number
   duration_minutes: number
+  is_active: boolean
+  display_order: number
+  created_at?: string
+}
+
+export interface Barber {
+  id: string
+  name: string
+  title: string
+  photo_url?: string | null
   is_active: boolean
   display_order: number
   created_at?: string

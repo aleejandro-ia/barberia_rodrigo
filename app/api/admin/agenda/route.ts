@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
   // Fetch all appointments (confirmed + cancelled) in range
   const { data: apptRaw } = await supabase
     .from('appointments')
-    .select('id, user_id, slot_date, slot_start_time, slot_end_time, client_name, client_phone, notes, status, created_at')
+    .select('id, user_id, slot_date, slot_start_time, slot_end_time, client_name, client_phone, notes, status, created_at, barber_id')
     .gte('slot_date', from)
     .lte('slot_date', to)
     .order('slot_date', { ascending: true })

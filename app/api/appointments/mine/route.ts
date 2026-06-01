@@ -14,7 +14,7 @@ export async function GET() {
       client_name, client_phone, notes, status, created_at,
       cancelled_at, cancellation_reason, rescheduled_at,
       previous_slot_date, previous_slot_start_time, completed_at,
-      reminder_24h_sent_at, reminder_2h_sent_at
+      reminder_24h_sent_at, reminder_2h_sent_at, barber_id
     `)
     .eq('user_id', user.id)
     .order('slot_date', { ascending: true })

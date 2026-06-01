@@ -3,6 +3,9 @@
 import { useEffect, useState } from 'react'
 import { getBookingSettings, updateBookingSetting } from '@/actions/bookingSettings'
 import { toggleSection } from '@/actions/settings'
+import { createBarber, updateBarber, deleteBarber } from '@/actions/barbers'
+import { User, PencilSimple, Trash, Plus, Check, X } from '@phosphor-icons/react'
+import type { Barber } from '@/types'
 
 interface StatusData {
   resend:           boolean
@@ -155,6 +158,378 @@ function VisibilityRow({ label, desc, enabled, onToggle, saving }: {
   )
 }
 
+/* ─── Barberos section ───────────────────────────────────────── */
+function BarberRow({
+  barber,
+  isLast,
+  onToggle,
+  onEdit,
+  onDelete,
+}: {
+  barber: Barber
+  isLast: boolean
+  onToggle: () => void
+  onEdit: () => void
+  onDelete: () => void
+}) {
+  return (
+    <div
+      className="flex items-center gap-3 px-4 py-3 rounded-xl"
+      style={{ border: '1px solid rgba(201,169,110,0.2)', backgroundColor: '#0E0B08' }}
+    >
+      {/* avatar */}
+      <div
+        className="flex-shrink-0 flex items-center justify-center rounded-full"
+        style={{ width: 40, height: 40, backgroundColor: '#1C1915' }}
+      >
+        <User size={20} color="#C9A96E" weight="duotone" />
+      </div>
+      {/* info */}
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold truncate" style={{ color: '#F2EDE7' }}>{barber.name}</p>
+        <p className="text-xs truncate" style={{ color: '#7A7268' }}>{barber.title}</p>
+      </div>
+      {/* active toggle */}
+      <button
+        onClick={onToggle}
+        className="flex-shrink-0 relative transition-opacity"
+        aria-label={barber.is_active ? 'Desactivar' : 'Activar'}
+      >
+        <div
+          className="w-10 h-5 rounded-full transition-colors duration-200"
+          style={{ backgroundColor: barber.is_active ? '#C9A96E' : 'rgba(255,255,255,0.08)', border: '1px solid rgba(201,169,110,0.2)' }}
+        >
+          <div
+            className="absolute top-0.5 w-4 h-4 rounded-full transition-all duration-200"
+            style={{ left: barber.is_active ? '22px' : '2px', backgroundColor: barber.is_active ? '#0E0B08' : '#4A4540' }}
+          />
+        </div>
+      </button>
+      {/* edit */}
+      <button
+        onClick={onEdit}
+        className="flex-shrink-0 p-1.5 rounded-lg transition-colors"
+        style={{ color: '#7A7268' }}
+        aria-label="Editar"
+      >
+        <PencilSimple size={16} />
+      </button>
+      {/* delete — only if not last */}
+      {!isLast && (
+        <button
+          onClick={onDelete}
+          className="flex-shrink-0 p-1.5 rounded-lg transition-colors"
+          style={{ color: '#7A7268' }}
+          aria-label="Eliminar"
+        >
+          <Trash size={16} />
+        </button>
+      )}
+    </div>
+  )
+}
+
+function BarberEditRow({
+  barber,
+  onSave,
+  onCancel,
+}: {
+  barber: Barber
+  onSave: (name: string, title: string) => Promise<void>
+  onCancel: () => void
+}) {
+  const [name,    setName]    = useState(barber.name)
+  const [title,   setTitle]   = useState(barber.title)
+  const [saving,  setSaving]  = useState(false)
+  const [error,   setError]   = useState<string | null>(null)
+
+  async function handleSave() {
+    if (!name.trim()) { setError('Nombre requerido'); return }
+    if (!title.trim()) { setError('Título requerido'); return }
+    setSaving(true)
+    setError(null)
+    await onSave(name.trim(), title.trim())
+    setSaving(false)
+  }
+
+  const inputStyle = {
+    backgroundColor: '#1C1915',
+    border:          '1px solid rgba(201,169,110,0.2)',
+    color:           '#F2EDE7',
+    borderRadius:    '0.75rem',
+    padding:         '0.4rem 0.6rem',
+    fontSize:        '0.8125rem',
+    outline:         'none',
+    width:           '100%',
+  }
+
+  return (
+    <div
+      className="px-4 py-3 rounded-xl flex flex-col gap-2"
+      style={{ border: '1px solid rgba(201,169,110,0.35)', backgroundColor: '#0E0B08' }}
+    >
+      <div className="flex gap-2">
+        <div className="flex-1">
+          <label className="text-xs block mb-1" style={{ color: '#7A7268' }}>Nombre</label>
+          <input style={inputStyle} value={name} onChange={e => setName(e.target.value)} autoFocus />
+        </div>
+        <div className="flex-1">
+          <label className="text-xs block mb-1" style={{ color: '#7A7268' }}>Título</label>
+          <input style={inputStyle} value={title} onChange={e => setTitle(e.target.value)} />
+        </div>
+      </div>
+      {error && <p className="text-xs" style={{ color: '#FF8080' }}>{error}</p>}
+      <div className="flex gap-2">
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-opacity"
+          style={{ backgroundColor: '#C9A96E', color: '#0E0B08', opacity: saving ? 0.6 : 1 }}
+        >
+          <Check size={13} weight="bold" />
+          {saving ? 'Guardando…' : 'Guardar'}
+        </button>
+        <button
+          onClick={onCancel}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium"
+          style={{ backgroundColor: 'rgba(255,255,255,0.06)', color: '#7A7268' }}
+        >
+          <X size={13} weight="bold" />
+          Cancelar
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function BarberosSection() {
+  const [barbers,    setBarbers]    = useState<Barber[]>([])
+  const [loading,    setLoading]    = useState(true)
+  const [editingId,  setEditingId]  = useState<string | null>(null)
+  const [showAdd,    setShowAdd]    = useState(false)
+  const [addName,    setAddName]    = useState('')
+  const [addTitle,   setAddTitle]   = useState('Barbero')
+  const [addSaving,  setAddSaving]  = useState(false)
+  const [addError,   setAddError]   = useState<string | null>(null)
+  const [rowErrors,  setRowErrors]  = useState<Record<string, string>>({})
+  const [confirmDel, setConfirmDel] = useState<string | null>(null)
+
+  async function fetchBarbers() {
+    try {
+      const res  = await fetch('/api/barbers')
+      const data = await res.json()
+      setBarbers(data.barbers ?? [])
+    } catch {
+      // silently fail
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => { fetchBarbers() }, [])
+
+  function setRowError(id: string, msg: string) {
+    setRowErrors(prev => ({ ...prev, [id]: msg }))
+    setTimeout(() => setRowErrors(prev => { const n = { ...prev }; delete n[id]; return n }), 4000)
+  }
+
+  async function handleToggle(barber: Barber) {
+    // optimistic
+    setBarbers(bs => bs.map(b => b.id === barber.id ? { ...b, is_active: !b.is_active } : b))
+    const res = await updateBarber(barber.id, { is_active: !barber.is_active })
+    if ('error' in res) {
+      setBarbers(bs => bs.map(b => b.id === barber.id ? { ...b, is_active: barber.is_active } : b))
+      setRowError(barber.id, 'Error al guardar')
+    } else {
+      setBarbers(bs => bs.map(b => b.id === barber.id ? res.barber : b))
+    }
+  }
+
+  async function handleEdit(id: string, name: string, title: string) {
+    const res = await updateBarber(id, { name, title })
+    if ('error' in res) {
+      setRowError(id, 'Error al guardar')
+    } else {
+      setBarbers(bs => bs.map(b => b.id === id ? res.barber : b))
+      setEditingId(null)
+    }
+  }
+
+  async function handleDelete(id: string) {
+    const res = await deleteBarber(id)
+    if ('error' in res) {
+      if (res.error === 'BARBER_HAS_APPOINTMENTS') {
+        setRowError(id, 'Tiene citas — no se puede eliminar')
+      } else {
+        setRowError(id, 'Error al eliminar')
+      }
+    } else {
+      setBarbers(bs => bs.filter(b => b.id !== id))
+    }
+    setConfirmDel(null)
+  }
+
+  async function handleAdd() {
+    if (!addName.trim()) { setAddError('Nombre requerido'); return }
+    if (!addTitle.trim()) { setAddError('Título requerido'); return }
+    setAddSaving(true)
+    setAddError(null)
+    const res = await createBarber({ name: addName.trim(), title: addTitle.trim() })
+    setAddSaving(false)
+    if ('error' in res) {
+      setAddError('Error al crear barbero')
+    } else {
+      setBarbers(bs => [...bs, res.barber])
+      setAddName('')
+      setAddTitle('Barbero')
+      setShowAdd(false)
+    }
+  }
+
+  const activeCount = barbers.filter(b => b.is_active).length
+
+  const inputStyle = {
+    backgroundColor: '#1C1915',
+    border:          '1px solid rgba(201,169,110,0.2)',
+    color:           '#F2EDE7',
+    borderRadius:    '0.75rem',
+    padding:         '0.4rem 0.6rem',
+    fontSize:        '0.8125rem',
+    outline:         'none',
+    width:           '100%',
+  }
+
+  return (
+    <SectionBox title="Barberos">
+      {loading ? (
+        <div className="animate-pulse rounded-xl" style={{ height: 56, backgroundColor: '#1C1915' }} />
+      ) : (
+        <div className="flex flex-col gap-2">
+          {barbers.map(barber => {
+            const isLast = activeCount <= 1 && barber.is_active
+            if (editingId === barber.id) {
+              return (
+                <div key={barber.id}>
+                  <BarberEditRow
+                    barber={barber}
+                    onSave={(name, title) => handleEdit(barber.id, name, title)}
+                    onCancel={() => setEditingId(null)}
+                  />
+                  {rowErrors[barber.id] && (
+                    <p className="text-xs mt-1 ml-1" style={{ color: '#FF8080' }}>{rowErrors[barber.id]}</p>
+                  )}
+                </div>
+              )
+            }
+            return (
+              <div key={barber.id}>
+                {confirmDel === barber.id ? (
+                  <div
+                    className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl"
+                    style={{ border: '1px solid rgba(255,80,80,0.3)', backgroundColor: '#0E0B08' }}
+                  >
+                    <p className="text-sm" style={{ color: '#FF8080' }}>¿Eliminar a <strong>{barber.name}</strong>?</p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleDelete(barber.id)}
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium"
+                        style={{ backgroundColor: 'rgba(255,80,80,0.15)', color: '#FF8080', border: '1px solid rgba(255,80,80,0.3)' }}
+                      >
+                        Eliminar
+                      </button>
+                      <button
+                        onClick={() => setConfirmDel(null)}
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium"
+                        style={{ backgroundColor: 'rgba(255,255,255,0.06)', color: '#7A7268' }}
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <BarberRow
+                    barber={barber}
+                    isLast={isLast}
+                    onToggle={() => handleToggle(barber)}
+                    onEdit={() => { setEditingId(barber.id); setConfirmDel(null) }}
+                    onDelete={() => setConfirmDel(barber.id)}
+                  />
+                )}
+                {rowErrors[barber.id] && (
+                  <p className="text-xs mt-1 ml-1" style={{ color: '#FF8080' }}>{rowErrors[barber.id]}</p>
+                )}
+              </div>
+            )
+          })}
+
+          {barbers.length === 0 && (
+            <p className="text-sm text-center py-4" style={{ color: '#4A4540' }}>Sin barberos — añade uno abajo.</p>
+          )}
+
+          {/* Add form */}
+          {showAdd ? (
+            <div
+              className="px-4 py-3 rounded-xl flex flex-col gap-2 mt-1"
+              style={{ border: '1px solid rgba(201,169,110,0.25)', backgroundColor: '#0E0B08' }}
+            >
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <label className="text-xs block mb-1" style={{ color: '#7A7268' }}>Nombre</label>
+                  <input
+                    style={inputStyle}
+                    placeholder="Ej. Rodrigo"
+                    value={addName}
+                    onChange={e => setAddName(e.target.value)}
+                    autoFocus
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="text-xs block mb-1" style={{ color: '#7A7268' }}>Título</label>
+                  <input
+                    style={inputStyle}
+                    placeholder="Ej. Barbero"
+                    value={addTitle}
+                    onChange={e => setAddTitle(e.target.value)}
+                  />
+                </div>
+              </div>
+              {addError && <p className="text-xs" style={{ color: '#FF8080' }}>{addError}</p>}
+              <div className="flex gap-2">
+                <button
+                  onClick={handleAdd}
+                  disabled={addSaving}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-opacity"
+                  style={{ backgroundColor: '#C9A96E', color: '#0E0B08', opacity: addSaving ? 0.6 : 1 }}
+                >
+                  <Check size={13} weight="bold" />
+                  {addSaving ? 'Guardando…' : 'Añadir'}
+                </button>
+                <button
+                  onClick={() => { setShowAdd(false); setAddName(''); setAddTitle('Barbero'); setAddError(null) }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.06)', color: '#7A7268' }}
+                >
+                  <X size={13} weight="bold" />
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowAdd(true)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium mt-1 transition-opacity hover:opacity-80"
+              style={{ border: '1px dashed rgba(201,169,110,0.3)', color: '#C9A96E', backgroundColor: 'transparent' }}
+            >
+              <Plus size={16} weight="bold" />
+              Añadir barbero
+            </button>
+          )}
+        </div>
+      )}
+    </SectionBox>
+  )
+}
+
 /* ─── Main page ──────────────────────────────────────────────── */
 export default function AdminAjustesPage() {
   const [status,        setStatus]        = useState<StatusData | null>(null)
@@ -282,6 +657,14 @@ export default function AdminAjustesPage() {
         <p className="mt-1 text-sm" style={{ color: '#7A7268' }}>
           Estado, reglas de reservas y recordatorios.
         </p>
+      </div>
+
+      {/* ── Section 0: Barberos ──────────────────────────────── */}
+      <div className="mb-6">
+        <p className="text-xs font-medium uppercase tracking-widest mb-3" style={{ color: '#4A4540' }}>
+          Barberos
+        </p>
+        <BarberosSection />
       </div>
 
       {/* ── Section 1: Estado de servicios ───────────────────── */}

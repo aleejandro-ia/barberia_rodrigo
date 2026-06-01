@@ -1,8 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { format, parseISO } from 'date-fns'
-import { es } from 'date-fns/locale'
 import { ArrowClockwise } from '@phosphor-icons/react'
 
 interface Slot {
@@ -17,6 +15,7 @@ interface TimeSlotPickerProps {
   onSelectSlot: (slot: Slot) => void
   refreshKey?: number        // increment from parent to force re-fetch (e.g. after SLOT_TAKEN)
   minHoursAdvance?: number   // client-side filter: hide slots within this many hours (default: 2)
+  barberId?: string
 }
 
 export default function TimeSlotPicker({
@@ -25,6 +24,7 @@ export default function TimeSlotPicker({
   onSelectSlot,
   refreshKey = 0,
   minHoursAdvance = 2,
+  barberId,
 }: TimeSlotPickerProps) {
   const [slots, setSlots] = useState<Slot[]>([])
   const [loading, setLoading] = useState(false)
@@ -35,7 +35,10 @@ export default function TimeSlotPicker({
     setLoading(true)
     setFetchError(false)
     setSlots([])
-    fetch(`/api/availability/slots?date=${date}`)
+    const url = barberId
+      ? `/api/availability/slots?date=${date}&barber_id=${barberId}`
+      : `/api/availability/slots?date=${date}`
+    fetch(url)
       .then((r) => r.json())
       .then((data) => {
         if (Array.isArray(data?.slots)) setSlots(data.slots)
@@ -49,16 +52,10 @@ export default function TimeSlotPicker({
   useEffect(() => {
     fetchSlots()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [date, refreshKey])
-
-  const dateLabel = format(parseISO(date), "EEEE d 'de' MMMM", { locale: es })
+  }, [date, refreshKey, barberId])
 
   return (
     <div className="w-full">
-      <p className="text-base mb-4 capitalize" style={{ color: '#888888' }}>
-        {dateLabel}
-      </p>
-
       {loading ? (
         <div className="flex items-center justify-center py-10">
           <div
@@ -68,7 +65,7 @@ export default function TimeSlotPicker({
         </div>
       ) : fetchError ? (
         <div className="flex flex-col items-center gap-3 py-6 text-center">
-          <p className="text-base" style={{ color: '#888' }}>
+          <p className="text-sm" style={{ color: '#5A5450' }}>
             No se pudieron cargar los horarios.
           </p>
           <button
@@ -90,39 +87,35 @@ export default function TimeSlotPicker({
           })
 
           if (visibleSlots.length === 0) return (
-            <p className="text-base py-6 text-center" style={{ color: '#555' }}>
-              No hay horarios disponibles para este día
+            <p className="text-sm py-6 text-center" style={{ color: '#4A4540' }}>
+              No hay horarios disponibles para este dia
             </p>
           )
 
           return (
-            <div className="flex flex-col gap-2">
+            <div className="grid grid-cols-4 gap-2">
               {visibleSlots.map((slot) => {
                 const isSelected = selectedSlot?.id === slot.id
-                const start = slot.start_time.slice(0, 5)
-                const end   = slot.end_time.slice(0, 5)
                 return (
                   <button
                     key={slot.id}
                     onClick={() => onSelectSlot(slot)}
-                    className="flex items-center justify-between px-4 py-3 rounded-xl text-base font-medium transition-all duration-150 active:scale-[0.98]"
+                    className="transition-all duration-150 active:scale-[0.95]"
                     style={{
-                      backgroundColor: isSelected ? '#C9A96E' : 'rgba(201,169,110,0.07)',
-                      color:           isSelected ? '#0A0A0A' : '#F5F5F5',
-                      border:          isSelected
-                        ? '1px solid #C9A96E'
-                        : '1px solid rgba(201,169,110,0.15)',
-                      boxShadow: isSelected ? '0 0 12px rgba(201,169,110,0.2)' : 'none',
+                      padding: '10px 8px',
+                      borderRadius: 10,
+                      backgroundColor: isSelected ? '#C9A96E' : '#1C1915',
+                      color: isSelected ? '#0E0B08' : '#F2EDE7',
+                      fontSize: '0.9rem',
+                      fontWeight: isSelected ? 600 : 400,
+                      border: isSelected ? 'none' : '1px solid rgba(201,169,110,0.1)',
+                      width: '100%',
+                      cursor: 'pointer',
+                      textAlign: 'center',
                     }}
                     aria-pressed={isSelected}
                   >
-                    <span>{start}</span>
-                    <span
-                      className="text-sm"
-                      style={{ color: isSelected ? 'rgba(0,0,0,0.5)' : '#5A5450' }}
-                    >
-                      hasta {end}
-                    </span>
+                    {slot.start_time.slice(0, 5)}
                   </button>
                 )
               })}

@@ -9,6 +9,10 @@ import {
   ArrowLeft,
   CheckCircle,
   Warning,
+  Scissors,
+  ShieldCheck,
+  CaretRight,
+  Phone,
 } from '@phosphor-icons/react'
 import { createClient } from '@/lib/supabase/client'
 import { AuthModal } from '@/components/auth/AuthModal'
@@ -16,7 +20,7 @@ import { bookAppointment } from '@/actions/appointments'
 import BookingCalendar from './BookingCalendar'
 import TimeSlotPicker from './TimeSlotPicker'
 import BookingConfirmation from './BookingConfirmation'
-import type { Appointment } from '@/types'
+import type { Appointment, Barber } from '@/types'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 import { format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -64,11 +68,11 @@ const inputStyle: React.CSSProperties = {
   transition:      'border-color 0.15s',
 }
 
-/* ─── Step indicator (mobile only) ────────────────────────── */
+/* ─── Step indicator (desktop + mobile) ───────────────────── */
 function StepIndicator({ step }: { step: BookingStep }) {
   const steps = ['date', 'slot', 'form'] as BookingStep[]
   const currentIndex = steps.indexOf(step)
-  const labels = ['Fecha', 'Hora', 'Confirmar']
+  const labels = ['Fecha', 'Hora', 'Datos']
 
   return (
     <div className="flex items-center justify-center gap-0 mb-8">
@@ -172,7 +176,7 @@ function MultiBookingWarning({ onContinue, onViewCitas }: MultiBookingWarningPro
             className="w-full py-2.5 rounded-full text-sm font-semibold transition-opacity hover:opacity-80"
             style={{ backgroundColor: '#C9A96E', color: '#0E0B08' }}
           >
-            Ver mis citas →
+            Ver mis citas
           </button>
           <button
             onClick={onContinue}
@@ -207,69 +211,88 @@ interface FormFieldsProps {
 function FormFields({ name, phone, service, setName, setPhone, setService, services }: FormFieldsProps) {
   return (
     <div className="flex flex-col gap-3">
+      {/* Nombre */}
       <div className="flex flex-col gap-1">
-        <label className="text-sm font-medium" style={{ color: '#5A5450' }}>
+        <label style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: '#4A4540' }}>
           Nombre
         </label>
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Tu nombre completo"
-          maxLength={100}
-          style={inputStyle}
-          onFocus={(e) => (e.target.style.borderColor = 'rgba(201,169,110,0.5)')}
-          onBlur={(e)  => (e.target.style.borderColor = 'rgba(201,169,110,0.2)')}
-        />
+        <div style={{ position: 'relative' }}>
+          <div style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#C9A96E', pointerEvents: 'none' }}>
+            <User size={14} />
+          </div>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Tu nombre completo"
+            maxLength={100}
+            style={{ ...inputStyle, paddingLeft: '2.25rem' }}
+            onFocus={(e) => (e.target.style.borderColor = 'rgba(201,169,110,0.5)')}
+            onBlur={(e)  => (e.target.style.borderColor = 'rgba(201,169,110,0.2)')}
+          />
+        </div>
       </div>
 
+      {/* Teléfono */}
       <div className="flex flex-col gap-1">
-        <label className="text-sm font-medium" style={{ color: '#5A5450' }}>
+        <label style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: '#4A4540' }}>
           Teléfono
         </label>
-        <input
-          type="tel"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          placeholder="600 123 456"
-          maxLength={20}
-          style={inputStyle}
-          onFocus={(e) => (e.target.style.borderColor = 'rgba(201,169,110,0.5)')}
-          onBlur={(e)  => (e.target.style.borderColor = 'rgba(201,169,110,0.2)')}
-        />
-        <p className="text-xs" style={{ color: '#3A3530' }}>
+        <div style={{ position: 'relative' }}>
+          <div style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#C9A96E', pointerEvents: 'none' }}>
+            <Phone size={14} />
+          </div>
+          <input
+            type="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="600 123 456"
+            maxLength={20}
+            style={{ ...inputStyle, paddingLeft: '2.25rem' }}
+            onFocus={(e) => (e.target.style.borderColor = 'rgba(201,169,110,0.5)')}
+            onBlur={(e)  => (e.target.style.borderColor = 'rgba(201,169,110,0.2)')}
+          />
+        </div>
+        <p style={{ fontSize: '0.7rem', color: '#3A3530' }}>
           9 dígitos sin prefijo — ej: 600 123 456
         </p>
       </div>
 
+      {/* Servicio */}
       <div className="flex flex-col gap-1">
-        <label className="text-sm font-medium" style={{ color: '#5A5450' }}>
+        <label style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: '#4A4540' }}>
           Servicio
         </label>
-        <select
-          value={service}
-          onChange={(e) => setService(e.target.value)}
-          required
-          style={{
-            ...inputStyle,
-            appearance: 'none',
-            WebkitAppearance: 'none',
-            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23C9A96E' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`,
-            backgroundRepeat: 'no-repeat',
-            backgroundPosition: 'right 0.875rem center',
-            paddingRight: '2.25rem',
-            cursor: 'pointer',
-          }}
-          onFocus={(e) => (e.target.style.borderColor = 'rgba(201,169,110,0.5)')}
-          onBlur={(e)  => (e.target.style.borderColor = 'rgba(201,169,110,0.2)')}
-        >
-          <option value="" disabled style={{ backgroundColor: '#1A1A1A' }}>Selecciona un servicio…</option>
-          {services.map((s) => (
-            <option key={s.id} value={s.name} style={{ backgroundColor: '#1A1A1A' }}>
-              {s.name} — {s.price_eur}€
-            </option>
-          ))}
-        </select>
+        <div style={{ position: 'relative' }}>
+          <div style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#C9A96E', pointerEvents: 'none', zIndex: 1 }}>
+            <Scissors size={14} />
+          </div>
+          <select
+            value={service}
+            onChange={(e) => setService(e.target.value)}
+            required
+            style={{
+              ...inputStyle,
+              paddingLeft: '2.25rem',
+              appearance: 'none',
+              WebkitAppearance: 'none',
+              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23C9A96E' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`,
+              backgroundRepeat: 'no-repeat',
+              backgroundPosition: 'right 0.875rem center',
+              paddingRight: '2.25rem',
+              cursor: 'pointer',
+            }}
+            onFocus={(e) => (e.target.style.borderColor = 'rgba(201,169,110,0.5)')}
+            onBlur={(e)  => (e.target.style.borderColor = 'rgba(201,169,110,0.2)')}
+          >
+            <option value="" disabled style={{ backgroundColor: '#1A1A1A' }}>Selecciona un servicio…</option>
+            {services.map((s) => (
+              <option key={s.id} value={s.name} style={{ backgroundColor: '#1A1A1A' }}>
+                {s.name} — {s.price_eur}€
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
     </div>
   )
@@ -297,7 +320,7 @@ function ConfirmButton({
         marginTop:        '0.5rem',
       }}
     >
-      {loading ? 'Confirmando...' : 'Confirmar cita →'}
+      {loading ? 'Confirmando...' : 'Confirmar cita'}
     </button>
   )
 }
@@ -319,6 +342,17 @@ function ErrorBanner({ message }: { message: string }) {
   )
 }
 
+/* ─── Scissors divider ──────────────────────────────────────── */
+function ScissorsDivider() {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '4px 0' }}>
+      <div style={{ flex: 1, height: 1, backgroundColor: 'rgba(201,169,110,0.08)' }} />
+      <Scissors size={14} style={{ color: 'rgba(201,169,110,0.3)' }} />
+      <div style={{ flex: 1, height: 1, backgroundColor: 'rgba(201,169,110,0.08)' }} />
+    </div>
+  )
+}
+
 /* ─── Desktop summary panel (left col) ─────────────────────── */
 interface SummaryPanelProps {
   selectedDate: string | null
@@ -336,6 +370,9 @@ interface SummaryPanelProps {
   error:    string | null
   step:     BookingStep
   services: ServiceItem[]
+  barber:   Barber | null
+  barbers:  Barber[]
+  onSelectBarber: (b: Barber) => void
 }
 
 function SummaryPanel({
@@ -354,9 +391,16 @@ function SummaryPanel({
   error,
   step,
   services,
+  barber,
+  barbers,
+  onSelectBarber,
 }: SummaryPanelProps) {
   const dateLabel = selectedDate
     ? format(parseISO(selectedDate), "d 'de' MMMM, yyyy", { locale: es })
+    : null
+
+  const slotLabel = selectedSlot
+    ? `${selectedSlot.start_time.slice(0, 5)} - ${selectedSlot.end_time.slice(0, 5)}`
     : null
 
   const canConfirm =
@@ -369,145 +413,179 @@ function SummaryPanel({
 
   return (
     <div
-      className="flex flex-col h-full rounded-2xl overflow-hidden"
       style={{
         backgroundColor: '#161310',
-        border:          '1px solid rgba(201,169,110,0.12)',
+        border: '1px solid rgba(201,169,110,0.12)',
+        borderRadius: 20,
+        padding: '20px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 12,
+        height: '100%',
       }}
     >
-      {/* Header */}
+      {/* Barber card */}
       <div
-        className="px-5 py-4 flex items-center gap-3"
-        style={{ borderBottom: '1px solid rgba(201,169,110,0.08)' }}
+        style={{
+          backgroundColor: '#1C1915',
+          border: '1px solid rgba(201,169,110,0.12)',
+          borderRadius: 16,
+          padding: '16px',
+        }}
       >
         <div
-          className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
           style={{
-            backgroundColor: 'rgba(201,169,110,0.1)',
-            border:          '1px solid rgba(201,169,110,0.25)',
+            width: 72,
+            height: 72,
+            borderRadius: '50%',
+            backgroundColor: '#2A2520',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 12px',
           }}
         >
-          <User size={18} weight="duotone" style={{ color: '#C9A96E' }} />
+          <User size={32} weight="duotone" style={{ color: '#C9A96E' }} />
         </div>
-        <div>
-          <p className="text-base font-semibold" style={{ color: '#F2EDE7' }}>
-            Rodrigo Bargueño
-          </p>
-          <p className="text-sm" style={{ color: '#5A5450' }}>
-            Maestro Barbero
-          </p>
-        </div>
-      </div>
-
-      {/* Selection summary */}
-      <div className="px-5 py-4 flex flex-col gap-3">
-        {/* Date pill */}
-        <div
-          className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl"
-          style={{
-            backgroundColor: selectedDate
-              ? 'rgba(201,169,110,0.06)'
-              : 'rgba(255,255,255,0.02)',
-            border: selectedDate
-              ? '1px solid rgba(201,169,110,0.15)'
-              : '1px dashed rgba(255,255,255,0.06)',
-          }}
-        >
-          <div className="flex items-center gap-3">
-            <CalendarBlank
-              size={16}
-              weight="duotone"
-              style={{ color: selectedDate ? '#C9A96E' : '#3A3530', flexShrink: 0 }}
-            />
-            <div>
-              <p className="text-xs uppercase tracking-widest mb-0.5" style={{ color: '#4A4540' }}>
-                Fecha
-              </p>
-              <p
-                className="text-base font-medium capitalize"
-                style={{ color: selectedDate ? '#F2EDE7' : '#3A3530' }}
-              >
-                {dateLabel ?? 'Selecciona una fecha'}
-              </p>
-            </div>
-          </div>
-          {selectedDate && (
-            <button
-              onClick={onChangeDate}
-              className="text-xs font-medium transition-opacity hover:opacity-70 flex-shrink-0"
-              style={{ color: '#C9A96E' }}
-            >
-              Cambiar
-            </button>
-          )}
-        </div>
-
-        {/* Slot pill */}
-        <div
-          className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl"
-          style={{
-            backgroundColor: selectedSlot
-              ? 'rgba(201,169,110,0.06)'
-              : 'rgba(255,255,255,0.02)',
-            border: selectedSlot
-              ? '1px solid rgba(201,169,110,0.15)'
-              : '1px dashed rgba(255,255,255,0.06)',
-          }}
-        >
-          <div className="flex items-center gap-3">
-            <Clock
-              size={16}
-              weight="duotone"
-              style={{ color: selectedSlot ? '#C9A96E' : '#3A3530', flexShrink: 0 }}
-            />
-            <div>
-              <p className="text-xs uppercase tracking-widest mb-0.5" style={{ color: '#4A4540' }}>
-                Hora
-              </p>
-              <p
-                className="text-base font-medium"
-                style={{ color: selectedSlot ? '#F2EDE7' : '#3A3530' }}
-              >
-                {selectedSlot
-                  ? `${selectedSlot.start_time.slice(0, 5)} – ${selectedSlot.end_time.slice(0, 5)}`
-                  : 'Selecciona un horario'}
-              </p>
-            </div>
-          </div>
-          {selectedSlot && (
-            <button
-              onClick={onChangeSlot}
-              className="text-xs font-medium transition-opacity hover:opacity-70 flex-shrink-0"
-              style={{ color: '#C9A96E' }}
-            >
-              Cambiar
-            </button>
-          )}
-        </div>
-
-        {/* Form — only when date + slot selected */}
-        {step === 'form' && (
-          <div className="mt-1">
-            <FormFields
-              name={name} phone={phone} service={service}
-              setName={setName} setPhone={setPhone} setService={setService}
-              services={services}
-            />
-          </div>
+        <p style={{ color: '#F2EDE7', fontWeight: 700, fontSize: '1.1rem', textAlign: 'center' }}>
+          {barber?.name ?? 'Selecciona barbero'}
+        </p>
+        <p style={{ color: '#5A5450', fontSize: '0.85rem', textAlign: 'center' }}>
+          {barber?.title ?? ''}
+        </p>
+        {barbers.length > 1 && (
+          <select
+            value={barber?.id ?? ''}
+            onChange={(e) => {
+              const found = barbers.find((b) => b.id === e.target.value)
+              if (found) onSelectBarber(found)
+            }}
+            style={{
+              marginTop: 10,
+              width: '100%',
+              backgroundColor: '#2A2520',
+              border: '1px solid rgba(201,169,110,0.2)',
+              color: '#F2EDE7',
+              borderRadius: 10,
+              padding: '8px 12px',
+              fontSize: '0.85rem',
+              outline: 'none',
+              cursor: 'pointer',
+              appearance: 'none',
+              WebkitAppearance: 'none',
+              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23C9A96E' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`,
+              backgroundRepeat: 'no-repeat',
+              backgroundPosition: 'right 0.75rem center',
+              paddingRight: '2rem',
+            }}
+          >
+            {barbers.map((b) => (
+              <option key={b.id} value={b.id} style={{ backgroundColor: '#1A1A1A' }}>
+                {b.name}
+              </option>
+            ))}
+          </select>
         )}
-
-        {error && <ErrorBanner message={error} />}
       </div>
+
+      {/* Fecha row — clickable */}
+      <button
+        onClick={onChangeDate}
+        style={{
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '12px 16px',
+          borderRadius: 12,
+          backgroundColor: '#1C1915',
+          border: '1px solid rgba(201,169,110,0.15)',
+          cursor: 'pointer',
+          textAlign: 'left',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <CalendarBlank size={16} style={{ color: '#C9A96E', flexShrink: 0 }} />
+          <div>
+            <p style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: '#4A4540', marginBottom: 2 }}>
+              FECHA SELECCIONADA
+            </p>
+            <p style={{ color: selectedDate ? '#F2EDE7' : '#3A3530', fontSize: '0.95rem', fontWeight: 500 }}>
+              {dateLabel ?? 'Selecciona una fecha'}
+            </p>
+          </div>
+        </div>
+        <CaretRight size={14} style={{ color: '#C9A96E', flexShrink: 0 }} />
+      </button>
+
+      {/* Hora row — clickable */}
+      <button
+        onClick={onChangeSlot}
+        style={{
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '12px 16px',
+          borderRadius: 12,
+          backgroundColor: '#1C1915',
+          border: '1px solid rgba(201,169,110,0.15)',
+          cursor: 'pointer',
+          textAlign: 'left',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Clock size={16} style={{ color: '#C9A96E', flexShrink: 0 }} />
+          <div>
+            <p style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: '#4A4540', marginBottom: 2 }}>
+              HORA SELECCIONADA
+            </p>
+            <p style={{ color: selectedSlot ? '#F2EDE7' : '#3A3530', fontSize: '0.95rem', fontWeight: 500 }}>
+              {slotLabel ?? 'Selecciona un horario'}
+            </p>
+          </div>
+        </div>
+        <CaretRight size={14} style={{ color: '#C9A96E', flexShrink: 0 }} />
+      </button>
+
+      {/* Scissors divider + form fields — only at form step */}
+      {step === 'form' && (
+        <>
+          <ScissorsDivider />
+          <FormFields
+            name={name} phone={phone} service={service}
+            setName={setName} setPhone={setPhone} setService={setService}
+            services={services}
+          />
+        </>
+      )}
+
+      {error && <ErrorBanner message={error} />}
 
       {/* CTA */}
-      <div className="mt-auto px-5 pb-5">
-        {step === 'form' ? (
-          <ConfirmButton canConfirm={canConfirm} loading={loading} onClick={onConfirm} />
-        ) : (
-          <p className="text-center text-sm" style={{ color: '#3A3530' }}>
-            Selecciona fecha y hora →
-          </p>
-        )}
+      {step === 'form' ? (
+        <ConfirmButton canConfirm={canConfirm} loading={loading} onClick={onConfirm} />
+      ) : (
+        <p className="text-center text-sm" style={{ color: '#3A3530' }}>
+          Selecciona fecha y hora
+        </p>
+      )}
+
+      {/* Security badge */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 6,
+          marginTop: 'auto',
+          paddingTop: 12,
+        }}
+      >
+        <ShieldCheck size={13} style={{ color: '#3A3530' }} />
+        <span style={{ fontSize: '0.72rem', color: '#3A3530' }}>
+          Tus datos están protegidos y encriptados
+        </span>
       </div>
     </div>
   )
@@ -536,6 +614,8 @@ export default function BookingSection() {
   const [confirmedAppointment, setConfirmedAppointment] = useState<Appointment | null>(null)
   const [services, setServices] = useState<ServiceItem[]>([])
   const [showMultiBookingWarning, setShowMultiBookingWarning] = useState(false)
+  const [barbers, setBarbers] = useState<Barber[]>([])
+  const [selectedBarber, setSelectedBarber] = useState<Barber | null>(null)
 
   /* ── Fetch services from API ──────────────────────────────── */
   useEffect(() => {
@@ -546,6 +626,19 @@ export default function BookingSection() {
         else setServices(FALLBACK_SERVICES)
       })
       .catch(() => setServices(FALLBACK_SERVICES))
+  }, [])
+
+  /* ── Fetch barbers from API ───────────────────────────────── */
+  useEffect(() => {
+    fetch('/api/barbers')
+      .then((r) => r.json())
+      .then((d) => {
+        if (Array.isArray(d.barbers) && d.barbers.length > 0) {
+          setBarbers(d.barbers)
+          setSelectedBarber(d.barbers[0])
+        }
+      })
+      .catch(() => {})
   }, [])
 
   /* ── Auth + setup ────────────────────────────────────────── */
@@ -600,8 +693,13 @@ export default function BookingSection() {
     ? format(parseISO(selectedDate), "d 'de' MMMM", { locale: es })
     : null
   const timeLabel = selectedSlot
-    ? `${selectedSlot.start_time.slice(0, 5)} – ${selectedSlot.end_time.slice(0, 5)}`
+    ? `${selectedSlot.start_time.slice(0, 5)} - ${selectedSlot.end_time.slice(0, 5)}`
     : null
+
+  /* Formatted day label for slots panel header */
+  const formattedDayLabel = selectedDate
+    ? format(parseISO(selectedDate), "EEEE d 'de' MMMM", { locale: es })
+    : ''
 
   /* ── Navigation handlers ─────────────────────────────────── */
   function handleSelectDate(date: string) {
@@ -677,14 +775,17 @@ export default function BookingSection() {
     setLoading(true)
     setError(null)
 
-    const result = await bookAppointment({
-      slot_date:       selectedDate,
-      slot_start_time: selectedSlot.start_time.slice(0, 5),  // Postgres time = HH:MM:SS, schema expects HH:MM
-      slot_end_time:   selectedSlot.end_time.slice(0, 5),
-      client_name:     name.trim(),
-      client_phone:    phone.trim(),
-      notes:           service || undefined,
-    })
+    const result = await bookAppointment(
+      {
+        slot_date:       selectedDate,
+        slot_start_time: selectedSlot.start_time.slice(0, 5),
+        slot_end_time:   selectedSlot.end_time.slice(0, 5),
+        client_name:     name.trim(),
+        client_phone:    phone.trim(),
+        notes:           service || undefined,
+      },
+      selectedBarber?.id ?? null,
+    )
 
     setLoading(false)
 
@@ -717,6 +818,16 @@ export default function BookingSection() {
     setPhone('')
     setService('')
     setError(null)
+  }
+
+  /* ── Handle barber change (reset date/slot) ──────────────── */
+  function handleSelectBarber(barber: Barber) {
+    setSelectedBarber(barber)
+    setSelectedDate(null)
+    setSelectedSlot(null)
+    setError(null)
+    setStep('date')
+    setSlotRefreshKey((k) => k + 1)
   }
 
   /* ─────────────────────────────────────────────────────────
@@ -752,7 +863,7 @@ export default function BookingSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.2 }}
           transition={{ duration: 0.7, ease }}
-          className="mb-14 text-center"
+          className="mb-10 text-center"
         >
           <p
             className="text-sm font-medium uppercase tracking-[0.25em] mb-4"
@@ -785,6 +896,63 @@ export default function BookingSection() {
               <StepIndicator step={step} />
             )}
 
+            {/* Barber mini-card — all non-confirmed steps */}
+            {step !== 'confirmed' && selectedBarber && (
+              <div
+                className="flex items-center gap-3 px-4 py-3 rounded-xl mb-5"
+                style={{ backgroundColor: 'rgba(201,169,110,0.06)', border: '1px solid rgba(201,169,110,0.12)' }}
+              >
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: '50%',
+                    backgroundColor: '#2A2520',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <User size={18} weight="duotone" style={{ color: '#C9A96E' }} />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold" style={{ color: '#F2EDE7' }}>
+                    {selectedBarber.name}
+                  </p>
+                  <p style={{ fontSize: '0.78rem', color: '#5A5450' }}>
+                    {selectedBarber.title}
+                  </p>
+                </div>
+                {barbers.length > 1 && (
+                  <select
+                    value={selectedBarber.id}
+                    onChange={(e) => {
+                      const found = barbers.find((b) => b.id === e.target.value)
+                      if (found) handleSelectBarber(found)
+                    }}
+                    style={{
+                      marginLeft: 'auto',
+                      backgroundColor: '#2A2520',
+                      border: '1px solid rgba(201,169,110,0.2)',
+                      color: '#C9A96E',
+                      borderRadius: 8,
+                      padding: '4px 8px',
+                      fontSize: '0.78rem',
+                      outline: 'none',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {barbers.map((b) => (
+                      <option key={b.id} value={b.id} style={{ backgroundColor: '#1A1A1A' }}>
+                        {b.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            )}
+
             {/* Confirmed state */}
             {step === 'confirmed' && confirmedAppointment && (
               <div
@@ -801,10 +969,18 @@ export default function BookingSection() {
 
             {/* Step: date */}
             {step === 'date' && (
-              <div className="py-2">
+              <div
+                style={{
+                  backgroundColor: '#161310',
+                  border: '1px solid rgba(201,169,110,0.12)',
+                  borderRadius: 20,
+                  padding: '24px',
+                }}
+              >
                 <BookingCalendar
                   selectedDate={selectedDate}
                   onSelectDate={handleSelectDate}
+                  barberId={selectedBarber?.id}
                 />
               </div>
             )}
@@ -812,8 +988,12 @@ export default function BookingSection() {
             {/* Step: slot */}
             {step === 'slot' && (
               <div
-                className="rounded-2xl p-6"
-                style={{ backgroundColor: '#0E0B08', border: '1px solid rgba(201,169,110,0.12)' }}
+                style={{
+                  backgroundColor: '#161310',
+                  border: '1px solid rgba(201,169,110,0.12)',
+                  borderRadius: 20,
+                  padding: '20px 24px',
+                }}
               >
                 {dateLabel && (
                   <BackButton
@@ -821,11 +1001,19 @@ export default function BookingSection() {
                     label={`Cambiar fecha · ${dateLabel}`}
                   />
                 )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                  <Clock size={18} style={{ color: '#C9A96E' }} />
+                  <div>
+                    <p style={{ color: '#F2EDE7', fontWeight: 600, fontSize: '1rem' }}>Elige una hora</p>
+                    <p style={{ color: '#5A5450', fontSize: '0.8rem', textTransform: 'capitalize' }}>{formattedDayLabel}</p>
+                  </div>
+                </div>
                 <TimeSlotPicker
                   date={selectedDate!}
                   selectedSlot={selectedSlot}
                   onSelectSlot={handleSelectSlot}
                   refreshKey={slotRefreshKey}
+                  barberId={selectedBarber?.id}
                 />
                 {error && <div className="mt-4"><ErrorBanner message={error} /></div>}
               </div>
@@ -834,8 +1022,12 @@ export default function BookingSection() {
             {/* Step: form */}
             {step === 'form' && (
               <div
-                className="rounded-2xl p-6"
-                style={{ backgroundColor: '#161310', border: '1px solid rgba(201,169,110,0.12)' }}
+                style={{
+                  backgroundColor: '#161310',
+                  border: '1px solid rgba(201,169,110,0.12)',
+                  borderRadius: 20,
+                  padding: '20px',
+                }}
               >
                 {dateLabel && timeLabel && (
                   <BackButton
@@ -844,22 +1036,14 @@ export default function BookingSection() {
                   />
                 )}
 
-                {/* Mini summary */}
-                <div
-                  className="flex items-center gap-3 px-4 py-3 rounded-xl mb-5"
-                  style={{ backgroundColor: 'rgba(201,169,110,0.06)', border: '1px solid rgba(201,169,110,0.12)' }}
-                >
-                  <User size={16} weight="duotone" style={{ color: '#C9A96E', flexShrink: 0 }} />
-                  <span className="text-sm" style={{ color: '#F2EDE7' }}>
-                    Rodrigo Bargueño — BG Barber
-                  </span>
+                <ScissorsDivider />
+                <div className="mt-3">
+                  <FormFields
+                    name={name} phone={phone} service={service}
+                    setName={setName} setPhone={setPhone} setService={setService}
+                    services={services}
+                  />
                 </div>
-
-                <FormFields
-                  name={name} phone={phone} service={service}
-                  setName={setName} setPhone={setPhone} setService={setService}
-                  services={services}
-                />
 
                 {error && <div className="mt-3"><ErrorBanner message={error} /></div>}
 
@@ -868,6 +1052,14 @@ export default function BookingSection() {
                   loading={loading}
                   onClick={handleConfirm}
                 />
+
+                {/* Security badge */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 12 }}>
+                  <ShieldCheck size={13} style={{ color: '#3A3530' }} />
+                  <span style={{ fontSize: '0.72rem', color: '#3A3530' }}>
+                    Tus datos están protegidos y encriptados
+                  </span>
+                </div>
               </div>
             )}
           </div>
@@ -875,92 +1067,103 @@ export default function BookingSection() {
           {/* ════════════════════════════════════════
               DESKTOP — 2-col layout (lg+)
           ════════════════════════════════════════ */}
-          <div className="hidden lg:grid grid-cols-[300px_1fr] gap-5">
+          <div className="hidden lg:block">
 
-            {/* LEFT: summary panel or terminal states */}
-            <div className="min-h-[400px]">
-              {step === 'confirmed' && confirmedAppointment ? (
-                <div
-                  className="rounded-2xl p-8"
-                  style={{ backgroundColor: '#161310', border: '1px solid rgba(201,169,110,0.12)' }}
-                >
-                  <BookingConfirmation
-                    date={confirmedAppointment.slot_date}
-                    startTime={confirmedAppointment.slot_start_time}
-                    onBookAnother={handleReset}
+            {/* Step indicator — visible on desktop too */}
+            {(step === 'date' || step === 'slot' || step === 'form') && (
+              <StepIndicator step={step} />
+            )}
+
+            <div className="grid grid-cols-[420px_1fr] gap-6">
+
+              {/* LEFT: summary panel or confirmed state */}
+              <div className="min-h-[400px]">
+                {step === 'confirmed' && confirmedAppointment ? (
+                  <div
+                    className="rounded-2xl p-8"
+                    style={{ backgroundColor: '#161310', border: '1px solid rgba(201,169,110,0.12)' }}
+                  >
+                    <BookingConfirmation
+                      date={confirmedAppointment.slot_date}
+                      startTime={confirmedAppointment.slot_start_time}
+                      onBookAnother={handleReset}
+                    />
+                  </div>
+                ) : (
+                  <SummaryPanel
+                    selectedDate={selectedDate}
+                    selectedSlot={selectedSlot}
+                    name={name} phone={phone} service={service}
+                    setName={setName} setPhone={setPhone} setService={setService}
+                    onConfirm={handleConfirm}
+                    onChangeDate={handleBackToDate}
+                    onChangeSlot={handleBackToSlot}
+                    loading={loading}
+                    error={error}
+                    step={step}
+                    services={services}
+                    barber={selectedBarber}
+                    barbers={barbers}
+                    onSelectBarber={handleSelectBarber}
                   />
-                </div>
-              ) : (
-                <SummaryPanel
-                  selectedDate={selectedDate}
-                  selectedSlot={selectedSlot}
-                  name={name} phone={phone} service={service}
-                  setName={setName} setPhone={setPhone} setService={setService}
-                  onConfirm={handleConfirm}
-                  onChangeDate={handleBackToDate}
-                  onChangeSlot={handleBackToSlot}
-                  loading={loading}
-                  error={error}
-                  step={step}
-                  services={services}
-                />
-              )}
-            </div>
+                )}
+              </div>
 
-            {/* RIGHT: calendar + slots (hidden in confirmed state) */}
-            {step !== 'confirmed' && (
-              <div
-                className="rounded-2xl overflow-hidden"
-                style={{ backgroundColor: '#161310', border: '1px solid rgba(201,169,110,0.12)' }}
-              >
-                <div className="grid grid-cols-1 md:grid-cols-[1fr_1px_auto]">
+              {/* RIGHT: calendar + slots stacked (hidden in confirmed state) */}
+              {step !== 'confirmed' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
                   {/* Calendar */}
-                  <div className="p-6 md:p-8">
-                    <p
-                      className="text-sm font-medium uppercase tracking-widest mb-6"
-                      style={{ color: '#4A4540' }}
-                    >
-                      {selectedDate ? 'Fecha seleccionada' : 'Selecciona un día'}
-                    </p>
-                    <div className="max-w-[420px] mx-auto">
-                      <BookingCalendar
-                        selectedDate={selectedDate}
-                        onSelectDate={handleSelectDate}
-                      />
-                    </div>
+                  <div
+                    style={{
+                      backgroundColor: '#161310',
+                      border: '1px solid rgba(201,169,110,0.12)',
+                      borderRadius: 20,
+                      padding: '24px',
+                    }}
+                  >
+                    <BookingCalendar
+                      selectedDate={selectedDate}
+                      onSelectDate={handleSelectDate}
+                      barberId={selectedBarber?.id}
+                    />
                   </div>
 
-                  {/* Divider + slots — only when date selected */}
+                  {/* Time slots — only when date selected */}
                   {selectedDate && (
-                    <>
-                      <div
-                        className="hidden md:block self-stretch my-6"
-                        style={{ backgroundColor: 'rgba(201,169,110,0.07)' }}
-                      />
-                      <div
-                        className="md:hidden h-px mx-6"
-                        style={{ backgroundColor: 'rgba(201,169,110,0.07)' }}
-                      />
-                      <div className="p-6 md:p-8 md:min-w-[220px]">
-                        <p
-                          className="text-sm font-medium uppercase tracking-widest mb-6"
-                          style={{ color: '#4A4540' }}
-                        >
-                          Horarios disponibles
-                        </p>
-                        <TimeSlotPicker
-                          date={selectedDate}
-                          selectedSlot={selectedSlot}
-                          onSelectSlot={handleSelectSlot}
-                          refreshKey={slotRefreshKey}
-                        />
+                    <div
+                      style={{
+                        backgroundColor: '#161310',
+                        border: '1px solid rgba(201,169,110,0.12)',
+                        borderRadius: 20,
+                        padding: '20px 24px',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                        <Clock size={18} style={{ color: '#C9A96E' }} />
+                        <div>
+                          <p style={{ color: '#F2EDE7', fontWeight: 600, fontSize: '1rem' }}>Elige una hora</p>
+                          <p style={{ color: '#5A5450', fontSize: '0.8rem', textTransform: 'capitalize' }}>{formattedDayLabel}</p>
+                        </div>
                       </div>
-                    </>
+                      <TimeSlotPicker
+                        date={selectedDate}
+                        selectedSlot={selectedSlot}
+                        onSelectSlot={handleSelectSlot}
+                        refreshKey={slotRefreshKey}
+                        barberId={selectedBarber?.id}
+                      />
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 16 }}>
+                        <ShieldCheck size={13} style={{ color: '#3A3530' }} />
+                        <span style={{ fontSize: '0.75rem', color: '#3A3530' }}>Citas rápidas · Confirmación inmediata</span>
+                      </div>
+                    </div>
                   )}
+
                 </div>
-              </div>
-            )}
+              )}
+
+            </div>
           </div>
 
         </motion.div>

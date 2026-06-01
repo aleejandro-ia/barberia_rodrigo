@@ -17,15 +17,17 @@ import { es } from 'date-fns/locale'
 interface BookingCalendarProps {
   selectedDate: string | null
   onSelectDate: (date: string) => void
+  barberId?: string
 }
 
-const DAY_LABELS = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
+const DAY_LABELS = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM']
 // Show at most 3 months ahead — no point showing months with no slots
 const MAX_MONTHS_AHEAD = 3
 
 export default function BookingCalendar({
   selectedDate,
   onSelectDate,
+  barberId,
 }: BookingCalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(() => {
     const now = new Date()
@@ -37,7 +39,10 @@ export default function BookingCalendar({
   useEffect(() => {
     const monthStr = format(currentMonth, 'yyyy-MM')
     setLoading(true)
-    fetch(`/api/availability/dates?month=${monthStr}`)
+    const url = barberId
+      ? `/api/availability/dates?month=${monthStr}&barber_id=${barberId}`
+      : `/api/availability/dates?month=${monthStr}`
+    fetch(url)
       .then((r) => r.json())
       .then((data) => {
         if (Array.isArray(data?.dates)) setAvailableDates(data.dates)
@@ -45,7 +50,7 @@ export default function BookingCalendar({
       })
       .catch(() => setAvailableDates([]))
       .finally(() => setLoading(false))
-  }, [currentMonth])
+  }, [currentMonth, barberId])
 
   const today = startOfDay(new Date())
   const monthStart = startOfMonth(currentMonth)
@@ -66,42 +71,39 @@ export default function BookingCalendar({
   const canGoNext = currentMonth.getTime() < maxMonth.getTime()
 
   return (
-    <div
-      className="w-full select-none rounded-[20px] p-6"
-      style={{
-        backgroundColor: '#F8F5F0',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
-      }}
-    >
+    <div className="w-full select-none">
       {/* Month navigation */}
-      <div className="flex items-center justify-between mb-7">
+      <div className="flex items-center justify-between mb-6">
         <button
           onClick={() =>
             canGoPrev &&
             setCurrentMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1))
           }
           disabled={!canGoPrev}
-          className="w-8 h-8 flex items-center justify-center rounded-full transition-all duration-150"
+          className="flex items-center justify-center transition-all duration-150"
           style={{
-            color: canGoPrev ? '#C9A96E' : '#C0B9AF',
-            backgroundColor: canGoPrev ? 'rgba(201,169,110,0.1)' : 'transparent',
-            border: `1px solid ${canGoPrev ? 'rgba(201,169,110,0.3)' : 'rgba(192,185,175,0.3)'}`,
+            width: 32,
+            height: 32,
+            borderRadius: '50%',
+            border: `1px solid ${canGoPrev ? 'rgba(201,169,110,0.2)' : 'rgba(201,169,110,0.07)'}`,
+            color: canGoPrev ? '#C9A96E' : '#3A3530',
+            backgroundColor: 'transparent',
             cursor: canGoPrev ? 'pointer' : 'not-allowed',
-            opacity: canGoPrev ? 1 : 0.45,
+            opacity: canGoPrev ? 1 : 0.4,
           }}
           aria-label="Mes anterior"
         >
-          <CaretLeft size={14} weight="bold" />
+          <CaretLeft size={13} weight="bold" />
         </button>
 
         <div className="text-center">
           <p
             className="text-base font-semibold capitalize tracking-wide"
-            style={{ color: '#1a1814' }}
+            style={{ color: '#F2EDE7' }}
           >
             {format(currentMonth, 'MMMM', { locale: es })}
           </p>
-          <p className="text-sm mt-0.5" style={{ color: '#5A5550' }}>
+          <p className="text-sm mt-0.5" style={{ color: '#5A5450' }}>
             {format(currentMonth, 'yyyy')}
           </p>
         </div>
@@ -112,27 +114,30 @@ export default function BookingCalendar({
             setCurrentMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1))
           }
           disabled={!canGoNext}
-          className="w-8 h-8 flex items-center justify-center rounded-full transition-all duration-150"
+          className="flex items-center justify-center transition-all duration-150"
           style={{
-            color: canGoNext ? '#C9A96E' : '#C0B9AF',
-            backgroundColor: canGoNext ? 'rgba(201,169,110,0.1)' : 'transparent',
-            border: `1px solid ${canGoNext ? 'rgba(201,169,110,0.3)' : 'rgba(192,185,175,0.3)'}`,
+            width: 32,
+            height: 32,
+            borderRadius: '50%',
+            border: `1px solid ${canGoNext ? 'rgba(201,169,110,0.2)' : 'rgba(201,169,110,0.07)'}`,
+            color: canGoNext ? '#C9A96E' : '#3A3530',
+            backgroundColor: 'transparent',
             cursor: canGoNext ? 'pointer' : 'not-allowed',
-            opacity: canGoNext ? 1 : 0.45,
+            opacity: canGoNext ? 1 : 0.4,
           }}
           aria-label="Mes siguiente"
         >
-          <CaretRight size={14} weight="bold" />
+          <CaretRight size={13} weight="bold" />
         </button>
       </div>
 
       {/* Day-of-week labels */}
-      <div className="grid grid-cols-7 mb-3">
+      <div className="grid grid-cols-7 mb-2">
         {DAY_LABELS.map((d) => (
           <div
             key={d}
-            className="text-center text-sm font-medium py-1"
-            style={{ color: '#7A7268' }}
+            className="text-center py-1"
+            style={{ color: '#4A4540', fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.06em' }}
           >
             {d}
           </div>
@@ -144,7 +149,7 @@ export default function BookingCalendar({
         {loading && (
           <div
             className="absolute inset-0 rounded-2xl flex items-center justify-center z-10"
-            style={{ backgroundColor: 'rgba(248,245,240,0.85)' }}
+            style={{ backgroundColor: 'rgba(22,19,16,0.85)' }}
           >
             <div
               className="w-5 h-5 rounded-full border-2 animate-spin"
@@ -173,9 +178,10 @@ export default function BookingCalendar({
               key={dateStr}
               onClick={() => isClickable && onSelectDate(dateStr)}
               disabled={!isClickable}
-              className="relative flex items-center justify-center text-base font-medium transition-all duration-150"
+              className="relative flex items-center justify-center text-sm font-medium transition-all duration-150 active:scale-[0.95]"
               style={{
                 aspectRatio: '1',
+                minHeight: '40px',
                 borderRadius: '10px',
                 backgroundColor: isSelected
                   ? '#C9A96E'
@@ -183,20 +189,20 @@ export default function BookingCalendar({
                 color: isSelected
                   ? '#0E0B08'
                   : isPast
-                    ? '#C0B9AF'
+                    ? '#2A2520'
                     : isAvailable
-                      ? '#1a1814'
-                      : '#C0B9AF',
+                      ? '#F2EDE7'
+                      : '#3A3530',
                 cursor: isClickable ? 'pointer' : 'default',
                 border:
                   isToday && !isSelected
-                    ? '1px solid rgba(201,169,110,0.6)'
+                    ? '1px solid rgba(201,169,110,0.4)'
                     : isSelected
                       ? '1px solid #C9A96E'
                       : '1px solid transparent',
-                boxShadow: isSelected ? '0 2px 12px rgba(201,169,110,0.35)' : 'none',
+                boxShadow: isSelected ? '0 2px 12px rgba(201,169,110,0.3)' : 'none',
               }}
-              aria-label={`${dateStr}${isAvailable ? ' – disponible' : ''}`}
+              aria-label={`${dateStr}${isAvailable ? ' - disponible' : ''}`}
               aria-pressed={isSelected}
             >
               {format(day, 'd')}
@@ -214,17 +220,17 @@ export default function BookingCalendar({
       {/* Legend */}
       <div className="flex items-center gap-5 mt-5 justify-center">
         <div className="flex items-center gap-1.5">
-          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#C9A96E' }} />
-          <span className="text-sm" style={{ color: '#7A7268' }}>
+          <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#C9A96E' }} />
+          <span style={{ color: '#4A4540', fontSize: '0.75rem' }}>
             Disponible
           </span>
         </div>
         <div className="flex items-center gap-1.5">
           <div
-            className="w-4 h-4 rounded-[4px] flex-shrink-0"
+            className="w-3.5 h-3.5 rounded-[4px] flex-shrink-0"
             style={{ backgroundColor: '#C9A96E' }}
           />
-          <span className="text-sm" style={{ color: '#7A7268' }}>
+          <span style={{ color: '#4A4540', fontSize: '0.75rem' }}>
             Seleccionado
           </span>
         </div>

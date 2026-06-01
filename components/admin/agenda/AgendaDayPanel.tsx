@@ -18,6 +18,8 @@ interface AgendaDayPanelProps {
   onMarkNoShow?:             (appointment: Appointment) => void
   onMarkCompleted?:          (appointment: Appointment) => void
   onViewClientHistory?:      (appointment: Appointment) => void
+  barberMap?:                Map<string, string>
+  barberCount?:              number
 }
 
 export default function AgendaDayPanel({
@@ -32,6 +34,8 @@ export default function AgendaDayPanel({
   onMarkNoShow,
   onMarkCompleted,
   onViewClientHistory,
+  barberMap,
+  barberCount = 0,
 }: AgendaDayPanelProps) {
   if (!day) {
     return (
@@ -118,6 +122,8 @@ export default function AgendaDayPanel({
               onMarkNoShow={onMarkNoShow}
               onMarkCompleted={onMarkCompleted}
               onViewClientHistory={onViewClientHistory}
+              barberMap={barberMap}
+              barberCount={barberCount}
             />
           ))
         )}

@@ -77,6 +77,8 @@ interface MisCitasCardProps {
   onRefresh: () => void
   cancelHoursBefore?: number
   rescheduleHoursBefore?: number
+  barberMap?: Map<string, string>
+  barberCount?: number
 }
 
 export default function MisCitasCard({
@@ -89,6 +91,8 @@ export default function MisCitasCard({
   onRefresh,
   cancelHoursBefore = 3,
   rescheduleHoursBefore = 3,
+  barberMap,
+  barberCount = 0,
 }: MisCitasCardProps) {
   const [appointment] = useState(initialAppointment)
   const [cancelOpen, setCancelOpen] = useState(false)
@@ -132,6 +136,11 @@ export default function MisCitasCard({
                 {appointment.slot_start_time.slice(0, 5)} — {appointment.slot_end_time.slice(0, 5)}
               </p>
             </div>
+            {barberCount >= 2 && appointment.barber_id && barberMap?.get(appointment.barber_id) && (
+              <span style={{ fontSize: '0.75rem', color: '#5A5450' }}>
+                ✂ {barberMap.get(appointment.barber_id)}
+              </span>
+            )}
           </div>
 
           {/* Status badge */}

@@ -6,7 +6,7 @@ import { bookAppointmentSchema } from '@/lib/validations'
 import { revalidatePath } from 'next/cache'
 import { getBookingSettings } from '@/actions/bookingSettings'
 
-export async function bookAppointment(data: unknown): Promise<
+export async function bookAppointment(data: unknown, barber_id?: string | null): Promise<
   | { appointment: { id: string; slot_date: string; slot_start_time: string; status: string } }
   | { error: 'VALIDATION_ERROR' | 'UNAUTHORIZED' | 'BOOKINGS_DISABLED' | 'TOO_SOON' | 'SLOT_NOT_FOUND' | 'SLOT_TAKEN' | 'ALREADY_HAS_BOOKING' }
 > {
@@ -67,6 +67,7 @@ export async function bookAppointment(data: unknown): Promise<
       client_phone,
       notes,
       status: 'confirmed',
+      ...(barber_id != null ? { barber_id } : {}),
     })
     .select('id, slot_date, slot_start_time, status')
     .single()

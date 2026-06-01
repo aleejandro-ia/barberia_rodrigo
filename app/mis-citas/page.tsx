@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { ArrowLeft, Scissors, CalendarBlank } from '@phosphor-icons/react'
-import type { Appointment, BookingSettings } from '@/types'
+import type { Appointment, BookingSettings, Barber } from '@/types'
 import MisCitasCard from '@/components/client/MisCitasCard'
 
 const DEFAULT_SETTINGS: Partial<BookingSettings> = {
@@ -29,6 +29,8 @@ export default function MisCitasPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [fetchError, setFetchError] = useState(false)
   const [settings, setSettings] = useState<Partial<BookingSettings>>(DEFAULT_SETTINGS)
+  const [barberMap, setBarberMap] = useState<Map<string, string>>(new Map())
+  const [barberCount, setBarberCount] = useState(0)
 
   // Auth check
   useEffect(() => {
@@ -72,6 +74,20 @@ export default function MisCitasPage() {
         }
       })
       .catch(() => {/* use defaults */})
+  }, [])
+
+  // Fetch barbers for name display
+  useEffect(() => {
+    fetch('/api/barbers')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        const list: Barber[] = data?.barbers ?? []
+        setBarberCount(list.length)
+        const map = new Map<string, string>()
+        for (const b of list) map.set(b.id, b.name)
+        setBarberMap(map)
+      })
+      .catch(() => {/* silent */})
   }, [])
 
   useEffect(() => {
@@ -244,6 +260,8 @@ export default function MisCitasPage() {
               onRefresh={fetchAppointments}
               cancelHoursBefore={settings.cancel_hours_before ?? 3}
               rescheduleHoursBefore={settings.reschedule_hours_before ?? 3}
+              barberMap={barberMap}
+              barberCount={barberCount}
             />
           </section>
         )}
@@ -270,6 +288,8 @@ export default function MisCitasPage() {
                   onRefresh={fetchAppointments}
                   cancelHoursBefore={settings.cancel_hours_before ?? 3}
                   rescheduleHoursBefore={settings.reschedule_hours_before ?? 3}
+                  barberMap={barberMap}
+                  barberCount={barberCount}
                 />
               ))}
             </div>
