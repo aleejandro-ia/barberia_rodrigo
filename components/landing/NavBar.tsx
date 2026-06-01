@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react'
-import { List, X, CalendarBlank, SignOut, User } from '@phosphor-icons/react'
+import { List, X, CalendarBlank, SignOut, User, GearSix } from '@phosphor-icons/react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { AuthModal } from '@/components/auth/AuthModal'
@@ -100,19 +100,7 @@ export default function NavBar() {
         </button>
       )
     }
-    if (isAdmin) {
-      return (
-        <Link
-          href="/admin"
-          style={userCircle}
-          aria-label="Panel Admin"
-          onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.opacity = '0.7')}
-          onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.opacity = '1')}
-        >
-          <User size={size} weight="bold" />
-        </Link>
-      )
-    }
+    // Logged in (admin or user) → calendar icon → /mis-citas
     return (
       <Link
         href="/mis-citas"
@@ -122,6 +110,22 @@ export default function NavBar() {
         onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.opacity = '1')}
       >
         <CalendarBlank size={size} weight="bold" />
+      </Link>
+    )
+  }
+
+  /* ─── Admin gear button (only when isAdmin) ────────────────── */
+  function renderAdminCircle(size: number = 16) {
+    if (!isAdmin) return null
+    return (
+      <Link
+        href="/admin"
+        style={userCircle}
+        aria-label="Panel Admin"
+        onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.opacity = '0.7')}
+        onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.opacity = '1')}
+      >
+        <GearSix size={size} weight="bold" />
       </Link>
     )
   }
@@ -144,8 +148,8 @@ export default function NavBar() {
             border:               '1px solid rgba(201,169,110,0.12)',
           }}
         >
-          {/* ── LEFT: logo + user circle (always visible) ──────── */}
-          <div className="flex items-center gap-3">
+          {/* ── LEFT: logo + user circle [+ admin gear if admin] ── */}
+          <div className="flex items-center gap-2">
             <a
               href="#"
               onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
@@ -155,6 +159,7 @@ export default function NavBar() {
               R.
             </a>
             {renderUserCircle(16)}
+            {renderAdminCircle(16)}
           </div>
 
           {/* ── CENTER: nav links (desktop only) ───────────────── */}
