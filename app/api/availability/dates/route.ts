@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
@@ -28,8 +29,11 @@ export async function GET(request: NextRequest) {
 
   const potentialDates = [...new Set(slots.map((s) => s.date))]
 
-  // Fetch confirmed bookings for those dates
-  const { data: booked } = await supabase
+  // Fetch confirmed bookings — use service role so ALL confirmed appointments
+  // are visible regardless of who's calling (RLS hides other users' bookings
+  // from non-admin sessions, causing fully-booked dates to still appear available)
+  const adminClient = createAdminClient()
+  const { data: booked } = await adminClient
     .from('appointments')
     .select('slot_date, slot_start_time')
     .eq('status', 'confirmed')

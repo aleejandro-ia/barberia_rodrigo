@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
@@ -19,8 +20,11 @@ export async function GET(request: NextRequest) {
 
   if (!slots || slots.length === 0) return NextResponse.json({ slots: [] })
 
-  // Get booked slot times for this date
-  const { data: booked } = await supabase
+  // Get booked slot times — use service role so ALL confirmed appointments
+  // are visible regardless of who's calling (RLS hides other users' bookings
+  // from non-admin sessions, causing taken slots to appear free)
+  const adminClient = createAdminClient()
+  const { data: booked } = await adminClient
     .from('appointments')
     .select('slot_start_time')
     .eq('slot_date', date)
