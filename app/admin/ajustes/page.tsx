@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { getBookingSettings, updateBookingSetting } from '@/actions/bookingSettings'
+import { toggleSection } from '@/actions/settings'
 
 interface StatusData {
   resend:           boolean
@@ -116,6 +117,44 @@ function SectionBox({ title, children }: { title: string; children: React.ReactN
   )
 }
 
+/* ─── Visibility toggle row ──────────────────────────────────── */
+function VisibilityRow({ label, desc, enabled, onToggle, saving }: {
+  label:    string
+  desc:     string
+  enabled:  boolean
+  onToggle: () => void
+  saving:   boolean
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <div>
+        <p className="text-sm font-medium" style={{ color: '#F2EDE7' }}>{label}</p>
+        <p className="text-xs mt-0.5" style={{ color: '#4A4540' }}>{desc}</p>
+      </div>
+      <button
+        onClick={onToggle}
+        disabled={saving}
+        className="flex-shrink-0 relative transition-opacity"
+        style={{ opacity: saving ? 0.6 : 1, cursor: saving ? 'not-allowed' : 'pointer' }}
+        aria-label={enabled ? `Desactivar ${label}` : `Activar ${label}`}
+      >
+        <div
+          className="w-12 h-6 rounded-full transition-colors duration-200"
+          style={{ backgroundColor: enabled ? '#C9A96E' : 'rgba(255,255,255,0.08)', border: '1px solid rgba(201,169,110,0.2)' }}
+        >
+          <div
+            className="absolute top-0.5 w-5 h-5 rounded-full transition-all duration-200"
+            style={{
+              left:            enabled ? '26px' : '2px',
+              backgroundColor: enabled ? '#0E0B08' : '#4A4540',
+            }}
+          />
+        </div>
+      </button>
+    </div>
+  )
+}
+
 /* ─── Main page ──────────────────────────────────────────────── */
 export default function AdminAjustesPage() {
   const [status,        setStatus]        = useState<StatusData | null>(null)
@@ -132,6 +171,48 @@ export default function AdminAjustesPage() {
   })
   const [rulesLoading, setRulesLoading] = useState(true)
   const [saving,       setSaving]       = useState<string | null>(null)
+
+  // Visibility toggles (gallery + before/after)
+  const [galleryEnabled,    setGalleryEnabled]    = useState(true)
+  const [beforeAfterEnabled,setBeforeAfterEnabled]= useState(true)
+  const [visLoading,        setVisLoading]        = useState(true)
+  const [visSaving,         setVisSaving]         = useState<'gallery' | 'before_after' | null>(null)
+  const [visError,          setVisError]          = useState<string | null>(null)
+
+  async function fetchVisibility() {
+    setVisLoading(true)
+    try {
+      const res  = await fetch('/api/settings')
+      const data = await res.json()
+      const s    = data.settings ?? {}
+      setGalleryEnabled(s.gallery_enabled      !== 'false')
+      setBeforeAfterEnabled(s.before_after_enabled !== 'false')
+    } catch {
+      // silently fail — keep defaults
+    } finally {
+      setVisLoading(false)
+    }
+  }
+
+  async function handleVisToggle(key: 'gallery_enabled' | 'before_after_enabled') {
+    const isGallery  = key === 'gallery_enabled'
+    const current    = isGallery ? galleryEnabled : beforeAfterEnabled
+    const setOptimistic = isGallery ? setGalleryEnabled : setBeforeAfterEnabled
+
+    // Optimistic: flip immediately
+    setOptimistic(!current)
+    setVisSaving(isGallery ? 'gallery' : 'before_after')
+    setVisError(null)
+
+    const result = await toggleSection(key, !current)
+    setVisSaving(null)
+
+    if ('error' in result) {
+      // Revert on error
+      setOptimistic(current)
+      setVisError('Error al guardar. Inténtalo de nuevo.')
+    }
+  }
 
   async function fetchStatus() {
     setStatusLoading(true)
@@ -170,6 +251,7 @@ export default function AdminAjustesPage() {
   useEffect(() => {
     fetchStatus()
     fetchRules()
+    fetchVisibility()
   }, [])
 
   async function saveSetting(key: string, value: string) {
@@ -292,7 +374,45 @@ export default function AdminAjustesPage() {
         )}
       </div>
 
-      {/* ── Section 3: Recordatorios ──────────────────────────── */}
+      {/* ── Section 3: Visibilidad de secciones ──────────────── */}
+      <div className="mt-6">
+        <p className="text-xs font-medium uppercase tracking-widest mb-3" style={{ color: '#4A4540' }}>
+          Visibilidad de secciones
+        </p>
+        {visLoading ? (
+          <div
+            className="rounded-2xl p-5 animate-pulse"
+            style={{ backgroundColor: '#161310', border: '1px solid rgba(201,169,110,0.06)', height: 100 }}
+          />
+        ) : (
+          <SectionBox title="Secciones del sitio">
+            {visError && (
+              <p className="text-xs mb-4 px-3 py-2 rounded-xl"
+                style={{ color: '#FF8080', backgroundColor: 'rgba(255,80,80,0.07)', border: '1px solid rgba(255,80,80,0.2)' }}>
+                {visError}
+              </p>
+            )}
+            <div className="flex flex-col gap-4">
+              <VisibilityRow
+                label="Galería de trabajos"
+                desc="Muestra u oculta el carrusel de fotos en la landing."
+                enabled={galleryEnabled}
+                onToggle={() => handleVisToggle('gallery_enabled')}
+                saving={visSaving === 'gallery'}
+              />
+              <VisibilityRow
+                label="Antes & Después"
+                desc="Muestra u oculta la sección de transformaciones."
+                enabled={beforeAfterEnabled}
+                onToggle={() => handleVisToggle('before_after_enabled')}
+                saving={visSaving === 'before_after'}
+              />
+            </div>
+          </SectionBox>
+        )}
+      </div>
+
+      {/* ── Section 4: Recordatorios ──────────────────────────── */}
       <div className="mt-6 mb-12">
         <p className="text-xs font-medium uppercase tracking-widest mb-3" style={{ color: '#4A4540' }}>
           Recordatorios
