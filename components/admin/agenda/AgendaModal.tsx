@@ -18,7 +18,7 @@ import {
 } from '@/actions/agenda'
 import { adminCancelAppointment } from '@/actions/appointments'
 import SlotBulkCreator from '@/components/admin/SlotBulkCreator'
-import BookingCalendar from '@/components/landing/BookingCalendar'
+import AdminCalendar from '@/components/admin/agenda/AdminCalendar'
 import TimeSlotPicker from '@/components/landing/TimeSlotPicker'
 import { format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -499,11 +499,13 @@ function RescheduleAppointmentForm({ appointment: appt, onClose, onSuccess }: {
       )}
 
       {step === 'date' && (
-        <BookingCalendar
-          selectedDate={selectedDate}
-          onSelectDate={handleDateSelect}
-          barberId={targetBarberId || undefined}
-        />
+        <div className="flex justify-center">
+          <AdminCalendar
+            selectedDate={selectedDate}
+            onSelectDate={handleDateSelect}
+            barberId={targetBarberId}
+          />
+        </div>
       )}
 
       {step === 'slot' && selectedDate && (

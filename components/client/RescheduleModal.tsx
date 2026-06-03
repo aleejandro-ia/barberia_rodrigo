@@ -173,11 +173,13 @@ export default function RescheduleModal({
         {/* Step content */}
         <div className="pt-1">
           {step === 'date' && (
-            <BookingCalendar
-              selectedDate={selectedDate}
-              onSelectDate={handleDateSelect}
-              barberId={appointment.barber_id ?? undefined}
-            />
+            <div style={{ backgroundColor: '#F8F5F0', borderRadius: 16, padding: '16px' }}>
+              <BookingCalendar
+                selectedDate={selectedDate}
+                onSelectDate={handleDateSelect}
+                barberId={appointment.barber_id ?? undefined}
+              />
+            </div>
           )}
 
           {step === 'slot' && selectedDate && (
