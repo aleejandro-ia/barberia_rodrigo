@@ -5,6 +5,7 @@ import { getUser, isAdmin } from '@/lib/auth'
 import { bookAppointmentSchema } from '@/lib/validations'
 import { revalidatePath } from 'next/cache'
 import { getBookingSettings } from '@/actions/bookingSettings'
+import { hoursUntilMadrid } from '@/lib/datetime'
 
 export async function bookAppointment(data: unknown, barber_id?: string | null): Promise<
   | { appointment: { id: string; slot_date: string; slot_start_time: string; status: string } }
@@ -28,9 +29,8 @@ export async function bookAppointment(data: unknown, barber_id?: string | null):
   const today = new Date().toISOString().split('T')[0]
   if (slot_date < today) return { error: 'VALIDATION_ERROR' as const }
 
-  // Check min_hours_advance
-  const slotDT = new Date(`${slot_date}T${slot_start_time}`)
-  const hoursUntil = (slotDT.getTime() - Date.now()) / (1000 * 60 * 60)
+  // Check min_hours_advance (slot times are Europe/Madrid wall-clock)
+  const hoursUntil = hoursUntilMadrid(slot_date, slot_start_time)
   if (hoursUntil < settings.min_hours_advance) return { error: 'TOO_SOON' as const }
 
   // Check slot exists and is available — scoped to the chosen barber
@@ -94,10 +94,9 @@ export async function cancelAppointment(appointmentId: string) {
   if (appt.user_id !== user.id) return { error: 'NOT_OWNER' as const }
   if (appt.status !== 'confirmed') return { error: 'ALREADY_CANCELLED' as const }
 
-  // Validate cancellation time window
+  // Validate cancellation time window (slot times are Europe/Madrid wall-clock)
   const settings = await getBookingSettings()
-  const apptDT = new Date(`${appt.slot_date}T${appt.slot_start_time}`)
-  const hoursUntil = (apptDT.getTime() - Date.now()) / (1000 * 60 * 60)
+  const hoursUntil = hoursUntilMadrid(appt.slot_date, appt.slot_start_time)
   if (hoursUntil < settings.cancel_hours_before) return { error: 'CANCEL_TOO_LATE' as const }
 
   const { data: updated, error: updateError } = await supabase
@@ -152,10 +151,9 @@ export async function rescheduleAppointment(
   if (appt.user_id !== user.id) return { error: 'NOT_OWNER' as const }
   if (appt.status !== 'confirmed') return { error: 'NOT_CONFIRMED' as const }
 
-  // Validate reschedule time window
+  // Validate reschedule time window (slot times are Europe/Madrid wall-clock)
   const settings = await getBookingSettings()
-  const apptDT = new Date(`${appt.slot_date}T${appt.slot_start_time}`)
-  const hoursUntil = (apptDT.getTime() - Date.now()) / (1000 * 60 * 60)
+  const hoursUntil = hoursUntilMadrid(appt.slot_date, appt.slot_start_time)
   if (hoursUntil < settings.reschedule_hours_before) return { error: 'RESCHEDULE_TOO_LATE' as const }
 
   // Validate new slot is not in the past

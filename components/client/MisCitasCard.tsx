@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { CalendarBlank, Clock, WhatsappLogo, ArrowCounterClockwise, X } from '@phosphor-icons/react'
 import type { Appointment, AppointmentStatus } from '@/types'
 import { whatsAppCancelOutOfTime, whatsAppRescheduleOutOfTime } from '@/lib/whatsapp'
+import { hoursUntilMadrid } from '@/lib/datetime'
 import CancelConfirmModal from './CancelConfirmModal'
 import RescheduleModal from './RescheduleModal'
 import AddToCalendarButton from './AddToCalendarButton'
@@ -53,8 +54,7 @@ const STATUS_CONFIG: Record<AppointmentStatus, StatusConfig> = {
 }
 
 function canAct(appt: Appointment, hoursRequired: number): boolean {
-  const apptDT = new Date(`${appt.slot_date}T${appt.slot_start_time}`)
-  return (apptDT.getTime() - Date.now()) / (1000 * 60 * 60) >= hoursRequired
+  return hoursUntilMadrid(appt.slot_date, appt.slot_start_time) >= hoursRequired
 }
 
 function formatDate(date: string): string {

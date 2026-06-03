@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { sendReminderEmail } from '@/lib/email/resend'
+import { madridTimeToMs } from '@/lib/datetime'
 
 export async function GET(req: Request) {
   // Auth check
@@ -106,7 +107,7 @@ export async function GET(req: Request) {
       .not('user_id', 'is', null)
 
     const appts2h = (appts2hRaw ?? []).filter((appt) => {
-      const startMs = new Date(`${appt.slot_date}T${appt.slot_start_time}`).getTime()
+      const startMs = madridTimeToMs(appt.slot_date, appt.slot_start_time)
       return startMs >= nowMs && startMs <= horizonMs
     })
 

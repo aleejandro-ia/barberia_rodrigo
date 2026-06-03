@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { ArrowClockwise } from '@phosphor-icons/react'
+import { madridTimeToMs } from '@/lib/datetime'
 
 interface Slot {
   id: string
@@ -82,8 +83,8 @@ export default function TimeSlotPicker({
           const now = Date.now()
           const visibleSlots = slots.filter((slot) => {
             if (!minHoursAdvance) return true
-            const slotDT = new Date(`${date}T${slot.start_time}`).getTime()
-            return (slotDT - now) / (1000 * 60 * 60) >= minHoursAdvance
+            const slotMs = madridTimeToMs(date, slot.start_time)
+            return (slotMs - now) / (1000 * 60 * 60) >= minHoursAdvance
           })
 
           if (visibleSlots.length === 0) return (
