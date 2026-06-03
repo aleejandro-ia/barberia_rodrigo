@@ -125,7 +125,7 @@ export default function AgendaSlotRow({
 
   return (
     <div
-      className="flex flex-col rounded-xl overflow-hidden transition-all duration-150"
+      className="flex items-center gap-3 rounded-xl overflow-hidden transition-all duration-150 px-3 py-2.5"
       style={{
         backgroundColor: cardBg,
         backgroundImage: bgImage,
@@ -133,30 +133,18 @@ export default function AgendaSlotRow({
         borderLeft:      `3px solid ${accentColor}`,
       }}
     >
-      {/* ── Top: time + status badge ──────────────────────────── */}
-      <div className="flex items-center justify-between px-3 pt-3 pb-1">
-        <span className="text-sm font-bold tabular-nums" style={{ color: timeTxt }}>
+      {/* ── Left: time ─────────────────────────────────────────── */}
+      <div className="flex flex-col flex-shrink-0" style={{ width: 64 }}>
+        <span className="text-sm font-bold tabular-nums leading-tight" style={{ color: timeTxt }}>
           {timeLabel(slot.start_time)}
-          <span className="font-normal text-xs ml-1" style={{ color: '#3A3530' }}>
-            – {timeLabel(slot.end_time)}
-          </span>
         </span>
-        {statusLabel && (
-          <span
-            className="text-xs px-2 py-0.5 rounded-full font-medium"
-            style={{
-              backgroundColor: `${statusLabel.color}15`,
-              color:           statusLabel.color,
-              border:          `1px solid ${statusLabel.color}30`,
-            }}
-          >
-            {statusLabel.text}
-          </span>
-        )}
+        <span className="text-xs tabular-nums leading-tight" style={{ color: '#3A3530' }}>
+          {timeLabel(slot.end_time)}
+        </span>
       </div>
 
       {/* ── Middle: content ────────────────────────────────────── */}
-      <div className="px-3 pb-2 flex-1">
+      <div className="flex-1 min-w-0">
         {isBlocked && (
           <div>
             <p className="text-sm font-semibold" style={{ color: '#4A4540' }}>Bloqueado</p>
@@ -167,14 +155,14 @@ export default function AgendaSlotRow({
         )}
 
         {isFree && (
-          <div className="flex items-center gap-1.5 mt-1">
+          <div className="flex items-center gap-1.5">
             <Scissors size={12} style={{ color: '#3A3530' }} />
             <p className="text-sm" style={{ color: '#3A3530' }}>Hueco libre</p>
           </div>
         )}
 
         {(isConfirmed || isCancelled || isCancelledByAdmin || isNoShow || isCompleted) && appt && (
-          <div>
+          <div className="flex items-center gap-2 flex-wrap">
             <p
               className="text-sm font-semibold truncate"
               style={{
@@ -184,36 +172,42 @@ export default function AgendaSlotRow({
             >
               {appt.client_name}
             </p>
-            <p className="text-xs mt-0.5" style={{ color: '#4A4540' }}>{appt.client_phone}</p>
+            <p className="text-xs" style={{ color: '#4A4540' }}>{appt.client_phone}</p>
             {appt.notes && (
-              <p className="text-xs mt-0.5 truncate" style={{ color: '#3A3530' }}>
+              <p className="text-xs truncate" style={{ color: '#3A3530' }}>
                 {appt.notes}
               </p>
             )}
-            {/* Walk-in + barber badges */}
-            <div className="flex flex-wrap gap-1 mt-1.5">
-              {appt.user_id == null && (
-                <span className="text-xs px-1.5 py-0.5 rounded font-medium"
-                  style={{ backgroundColor: 'rgba(201,169,110,0.12)', color: '#C9A96E', border: '1px solid rgba(201,169,110,0.2)' }}>
-                  Walk-in
-                </span>
-              )}
-              {barberCount >= 2 && appt.barber_id && barberMap?.get(appt.barber_id) && (
-                <span className="text-xs px-1.5 py-0.5 rounded-full font-medium"
-                  style={{ backgroundColor: 'rgba(201,169,110,0.1)', color: '#C9A96E', border: '1px solid rgba(201,169,110,0.2)' }}>
-                  {barberMap.get(appt.barber_id)}
-                </span>
-              )}
-            </div>
+            {appt.user_id == null && (
+              <span className="text-xs px-1.5 py-0.5 rounded font-medium"
+                style={{ backgroundColor: 'rgba(201,169,110,0.12)', color: '#C9A96E', border: '1px solid rgba(201,169,110,0.2)' }}>
+                Walk-in
+              </span>
+            )}
+            {barberCount >= 2 && appt.barber_id && barberMap?.get(appt.barber_id) && (
+              <span className="text-xs px-1.5 py-0.5 rounded-full font-medium"
+                style={{ backgroundColor: 'rgba(201,169,110,0.1)', color: '#C9A96E', border: '1px solid rgba(201,169,110,0.2)' }}>
+                {barberMap.get(appt.barber_id)}
+              </span>
+            )}
           </div>
         )}
       </div>
 
-      {/* ── Bottom: action buttons — always visible ─────────────── */}
-      <div
-        className="flex items-center gap-1.5 px-3 py-2 flex-wrap"
-        style={{ borderTop: `1px solid ${borderColor}` }}
-      >
+      {/* ── Right: status badge + action buttons ───────────────── */}
+      {statusLabel && (
+        <span
+          className="text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0"
+          style={{
+            backgroundColor: `${statusLabel.color}15`,
+            color:           statusLabel.color,
+            border:          `1px solid ${statusLabel.color}30`,
+          }}
+        >
+          {statusLabel.text}
+        </span>
+      )}
+      <div className="flex items-center gap-1.5 flex-shrink-0">
         {isFree && (
           <>
             <button title="Crear cita"    style={actionBtn('#C9A96E', 'rgba(201,169,110,0.15)')} onClick={() => onCreateAppointment(slot)}>

@@ -74,7 +74,7 @@ export default function AdminCalendar({ selectedDate, onSelectDate, barberId }: 
 
   return (
     <div
-      className="rounded-2xl p-5 select-none w-full"
+      className="rounded-2xl p-4 select-none w-full max-w-sm"
       style={{ backgroundColor: '#F8F5F0' }}
     >
       {/* Month navigation */}
@@ -153,8 +153,7 @@ export default function AdminCalendar({ selectedDate, onSelectDate, barberId }: 
               onClick={() => onSelectDate(dateStr)}
               className="relative flex flex-col items-center justify-center text-sm font-medium transition-all duration-150 active:scale-[0.95]"
               style={{
-                aspectRatio: '1',
-                minHeight: '40px',
+                height: '38px',
                 borderRadius: '10px',
                 backgroundColor: isSelected ? '#C9A96E' : 'transparent',
                 color: isSelected

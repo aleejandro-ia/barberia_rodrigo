@@ -54,12 +54,12 @@ export default function AgendaDayPanel({
 
   if (loading || !day) {
     return (
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+      <div className="flex flex-col gap-2">
         {Array.from({ length: 6 }).map((_, i) => (
           <div
             key={i}
             className="rounded-xl animate-pulse"
-            style={{ height: 140, backgroundColor: 'rgba(201,169,110,0.05)' }}
+            style={{ height: 64, backgroundColor: 'rgba(201,169,110,0.05)' }}
           />
         ))}
       </div>
@@ -118,7 +118,7 @@ export default function AgendaDayPanel({
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+        <div className="flex flex-col gap-2">
           {day.slots.map(agendaSlot => (
             <AgendaSlotRow
               key={agendaSlot.slot.id}
