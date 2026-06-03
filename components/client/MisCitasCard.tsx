@@ -94,7 +94,10 @@ export default function MisCitasCard({
   barberMap,
   barberCount = 0,
 }: MisCitasCardProps) {
-  const [appointment] = useState(initialAppointment)
+  // Use the prop directly — freezing it in useState made the card show
+  // stale data (old date/time) after a reschedule, since the same card
+  // instance persists across the parent refetch.
+  const appointment = initialAppointment
   const [cancelOpen, setCancelOpen] = useState(false)
   const [rescheduleOpen, setRescheduleOpen] = useState(false)
 

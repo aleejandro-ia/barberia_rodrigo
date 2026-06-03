@@ -84,22 +84,33 @@ export async function GET(req: Request) {
   // ─── 2h window ───────────────────────────────────────────────
   let processed2h = 0
   if ((s.reminder_2h_enabled ?? 'true') === 'true') {
-    const in2h = new Date(now.getTime() + 2 * 60 * 60 * 1000)
-    const in2hDate = in2h.toISOString().split('T')[0]
-    const in2hTime = in2h.toTimeString().slice(0, 5)
-    const nowTime  = now.toTimeString().slice(0, 5)
+    const nowMs     = now.getTime()
+    const horizonMs = nowMs + 2 * 60 * 60 * 1000
+    const in2h      = new Date(horizonMs)
 
-    const { data: appts2h } = await supabaseAdmin
+    // Fetch confirmed appts for today AND tomorrow so a window that crosses
+    // midnight (e.g. now=23:30, horizon=01:30) is fully covered. Filter the
+    // exact 0–2h window in JS using the same date convention as the rest of
+    // the app — avoids the broken string-time range that returned nothing
+    // when the lower bound was numerically greater than the upper bound.
+    const todayStr = now.toISOString().split('T')[0]
+    const tmrwStr  = in2h.toISOString().split('T')[0]
+    const candidateDates = todayStr === tmrwStr ? [todayStr] : [todayStr, tmrwStr]
+
+    const { data: appts2hRaw } = await supabaseAdmin
       .from('appointments')
       .select('id, user_id, client_name, slot_date, slot_start_time, slot_end_time, notes')
       .eq('status', 'confirmed')
-      .eq('slot_date', in2hDate)
-      .gte('slot_start_time', nowTime)
-      .lte('slot_start_time', in2hTime)
+      .in('slot_date', candidateDates)
       .is('reminder_2h_sent_at', null)
       .not('user_id', 'is', null)
 
-    for (const appt of appts2h ?? []) {
+    const appts2h = (appts2hRaw ?? []).filter((appt) => {
+      const startMs = new Date(`${appt.slot_date}T${appt.slot_start_time}`).getTime()
+      return startMs >= nowMs && startMs <= horizonMs
+    })
+
+    for (const appt of appts2h) {
       try {
         const { data: { user } } = await supabaseAdmin.auth.admin.getUserById(appt.user_id!)
         if (!user?.email) continue
