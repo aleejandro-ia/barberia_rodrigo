@@ -536,8 +536,8 @@ export default function AdminAjustesPage() {
   const [statusLoading, setStatusLoading] = useState(true)
   const [rules,         setRules]         = useState<BookingRules>({
     bookings_enabled:        true,
-    cancel_hours_before:     3,
-    reschedule_hours_before: 3,
+    cancel_hours_before:     24,
+    reschedule_hours_before: 24,
     min_hours_advance:       2,
     advance_booking_days:    90,
     reminders_enabled:       true,

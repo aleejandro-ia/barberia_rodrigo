@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { ArrowLeft, CheckCircle } from '@phosphor-icons/react'
 import {
@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dialog'
 import BookingCalendar from '@/components/landing/BookingCalendar'
 import TimeSlotPicker from '@/components/landing/TimeSlotPicker'
-import type { Appointment } from '@/types'
+import type { Appointment, Barber } from '@/types'
 import { rescheduleAppointment } from '@/actions/appointments'
 
 interface Slot {
@@ -45,6 +45,25 @@ export default function RescheduleModal({
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null)
   const [loading, setLoading] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [barbers, setBarbers] = useState<Barber[]>([])
+  const [targetBarberId, setTargetBarberId] = useState<string>(appointment.barber_id ?? '')
+
+  // Load active barbers once the modal opens — used for the optional barber
+  // switcher (only shown when there's more than one barber).
+  useEffect(() => {
+    if (!open) return
+    fetch('/api/barbers')
+      .then(r => r.json())
+      .then(data => {
+        const list: Barber[] = data.barbers ?? []
+        setBarbers(list)
+        if (!appointment.barber_id && list.length > 0) setTargetBarberId(list[0].id)
+      })
+      .catch(() => {})
+  }, [open, appointment.barber_id])
+
+  const multiBarber = barbers.length > 1
+  const effectiveBarberId = targetBarberId || appointment.barber_id || undefined
 
   function handleClose(v: boolean) {
     if (!v) {
@@ -52,8 +71,17 @@ export default function RescheduleModal({
       setStep('date')
       setSelectedDate(null)
       setSelectedSlot(null)
+      setTargetBarberId(appointment.barber_id ?? '')
     }
     onOpenChange(v)
+  }
+
+  function handleBarberChange(id: string) {
+    if (id === targetBarberId) return
+    setTargetBarberId(id)
+    setSelectedDate(null)
+    setSelectedSlot(null)
+    setStep('date')
   }
 
   function handleDateSelect(date: string) {
@@ -75,6 +103,7 @@ export default function RescheduleModal({
         slot_date: selectedDate,
         slot_start_time: selectedSlot.start_time,
         slot_end_time: selectedSlot.end_time,
+        barber_id: effectiveBarberId,
       })
       if ('error' in result) {
         const msgs: Record<string, string> = {
@@ -85,6 +114,7 @@ export default function RescheduleModal({
           RESCHEDULE_TOO_LATE: 'Ya no es posible reagendar con tan poca antelación.',
           SLOT_NOT_FOUND: 'El horario seleccionado ya no está disponible.',
           SLOT_TAKEN: 'El horario seleccionado acaba de ser reservado. Elige otro.',
+          BARBER_NOT_FOUND: 'El profesional seleccionado no está disponible.',
           VALIDATION_ERROR: 'Datos inválidos.',
           UPDATE_FAILED:       'No se pudo reagendar. Inténtalo de nuevo.',
         }
@@ -170,6 +200,35 @@ export default function RescheduleModal({
           ))}
         </div>
 
+        {/* Barber switcher — only when 2+ barbers exist */}
+        {multiBarber && (
+          <div
+            className="flex items-center gap-2 mb-1 px-3 py-2.5 rounded-xl flex-wrap"
+            style={{ backgroundColor: 'rgba(201,169,110,0.05)', border: '1px solid rgba(201,169,110,0.12)' }}
+          >
+            <span className="text-xs font-semibold uppercase tracking-widest flex-shrink-0" style={{ color: '#7A7268' }}>
+              Profesional
+            </span>
+            <div className="flex gap-1.5 flex-wrap">
+              {barbers.map(b => (
+                <button
+                  key={b.id}
+                  onClick={() => handleBarberChange(b.id)}
+                  className="px-3 py-1 rounded-full text-xs font-medium transition-all"
+                  style={{
+                    backgroundColor: targetBarberId === b.id ? '#C9A96E' : 'rgba(201,169,110,0.08)',
+                    color:           targetBarberId === b.id ? '#0E0B08' : '#7A7268',
+                    border:          `1px solid ${targetBarberId === b.id ? '#C9A96E' : 'rgba(201,169,110,0.15)'}`,
+                    cursor:          'pointer',
+                  }}
+                >
+                  {b.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Step content */}
         <div className="pt-1">
           {step === 'date' && (
@@ -177,7 +236,7 @@ export default function RescheduleModal({
               <BookingCalendar
                 selectedDate={selectedDate}
                 onSelectDate={handleDateSelect}
-                barberId={appointment.barber_id ?? undefined}
+                barberId={effectiveBarberId}
               />
             </div>
           )}
@@ -188,7 +247,7 @@ export default function RescheduleModal({
               selectedSlot={selectedSlot}
               onSelectSlot={handleSlotSelect}
               refreshKey={refreshKey}
-              barberId={appointment.barber_id ?? undefined}
+              barberId={effectiveBarberId}
             />
           )}
 
@@ -210,6 +269,11 @@ export default function RescheduleModal({
                 <p className="text-sm mt-1" style={{ color: '#7A7268' }}>
                   {selectedSlot.start_time.slice(0, 5)} — {selectedSlot.end_time.slice(0, 5)}
                 </p>
+                {multiBarber && effectiveBarberId && (
+                  <p className="text-sm mt-1" style={{ color: '#C9A96E' }}>
+                    {barbers.find(b => b.id === effectiveBarberId)?.name ?? ''}
+                  </p>
+                )}
               </div>
 
               <div

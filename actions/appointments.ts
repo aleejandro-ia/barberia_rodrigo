@@ -136,7 +136,7 @@ export async function cancelAppointment(appointmentId: string) {
 
 export async function rescheduleAppointment(
   appointmentId: string,
-  newSlot: { slot_date: string; slot_start_time: string; slot_end_time: string }
+  newSlot: { slot_date: string; slot_start_time: string; slot_end_time: string; barber_id?: string | null }
 ) {
   const user = await getUser()
   if (!user) return { error: 'UNAUTHORIZED' as const }
@@ -160,18 +160,34 @@ export async function rescheduleAppointment(
   const today = new Date().toISOString().split('T')[0]
   if (newSlot.slot_date < today) return { error: 'VALIDATION_ERROR' as const }
 
-  // Check new slot exists and is available — scoped to the same barber
+  // Determine target barber: the client may move the appointment to another
+  // barber. Fall back to the appointment's current barber when none is sent.
+  const targetBarberId = newSlot.barber_id ?? appt.barber_id ?? null
+
+  // If switching to a different barber, that barber must exist and be active —
+  // never trust an arbitrary id coming from the client.
+  if (targetBarberId && targetBarberId !== appt.barber_id) {
+    const { data: barber } = await supabase
+      .from('barbers')
+      .select('id')
+      .eq('id', targetBarberId)
+      .eq('is_active', true)
+      .maybeSingle()
+    if (!barber) return { error: 'BARBER_NOT_FOUND' as const }
+  }
+
+  // Check new slot exists and is available — scoped to the TARGET barber
   let slotQuery = supabase
     .from('availability_slots')
     .select('id')
     .eq('date', newSlot.slot_date)
     .eq('start_time', newSlot.slot_start_time)
     .eq('is_available', true)
-  if (appt.barber_id) slotQuery = slotQuery.eq('barber_id', appt.barber_id)
+  if (targetBarberId) slotQuery = slotQuery.eq('barber_id', targetBarberId)
   const { data: slot } = await slotQuery.maybeSingle()
   if (!slot) return { error: 'SLOT_NOT_FOUND' as const }
 
-  // Check new slot not taken — scoped to the same barber
+  // Check new slot not taken — scoped to the TARGET barber
   let takenQuery = supabase
     .from('appointments')
     .select('id')
@@ -179,23 +195,29 @@ export async function rescheduleAppointment(
     .eq('slot_start_time', newSlot.slot_start_time)
     .eq('status', 'confirmed')
     .neq('id', appointmentId)
-  if (appt.barber_id) takenQuery = takenQuery.eq('barber_id', appt.barber_id)
+  if (targetBarberId) takenQuery = takenQuery.eq('barber_id', targetBarberId)
   const { data: taken } = await takenQuery.maybeSingle()
   if (taken) return { error: 'SLOT_TAKEN' as const }
 
-  // UPDATE in-place — old slot is freed automatically
+  // UPDATE in-place — old slot is freed automatically.
+  // Include barber_id only when it actually changes.
+  const updatePayload: Record<string, unknown> = {
+    slot_date: newSlot.slot_date,
+    slot_start_time: newSlot.slot_start_time,
+    slot_end_time: newSlot.slot_end_time,
+    rescheduled_at: new Date().toISOString(),
+    previous_slot_date: appt.slot_date,
+    previous_slot_start_time: appt.slot_start_time,
+    reminder_24h_sent_at: null,
+    reminder_2h_sent_at: null,
+  }
+  if (targetBarberId && targetBarberId !== appt.barber_id) {
+    updatePayload.barber_id = targetBarberId
+  }
+
   const { data: updated, error: updateError } = await supabase
     .from('appointments')
-    .update({
-      slot_date: newSlot.slot_date,
-      slot_start_time: newSlot.slot_start_time,
-      slot_end_time: newSlot.slot_end_time,
-      rescheduled_at: new Date().toISOString(),
-      previous_slot_date: appt.slot_date,
-      previous_slot_start_time: appt.slot_start_time,
-      reminder_24h_sent_at: null,
-      reminder_2h_sent_at: null,
-    })
+    .update(updatePayload)
     .eq('id', appointmentId)
     .select('id')
 

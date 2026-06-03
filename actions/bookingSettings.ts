@@ -10,8 +10,8 @@ export async function getBookingSettings(): Promise<BookingSettings> {
   const m: Record<string, string> = {}
   for (const row of data ?? []) m[row.key] = row.value
   return {
-    cancel_hours_before:     parseInt(m.cancel_hours_before     ?? '3'),
-    reschedule_hours_before: parseInt(m.reschedule_hours_before ?? '3'),
+    cancel_hours_before:     parseInt(m.cancel_hours_before     ?? '24'),
+    reschedule_hours_before: parseInt(m.reschedule_hours_before ?? '24'),
     advance_booking_days:    parseInt(m.advance_booking_days    ?? '90'),
     min_hours_advance:       parseInt(m.min_hours_advance       ?? '2'),
     whatsapp_phone:          m.whatsapp_phone          ?? '34600000000',
