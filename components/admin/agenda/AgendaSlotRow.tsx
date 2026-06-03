@@ -3,6 +3,7 @@
 import {
   Plus, Lock, LockOpen, PencilSimple, X, WhatsappLogo,
   ArrowsClockwise, UserMinus, User, CheckCircle, Scissors,
+  Phone, EnvelopeSimple, UserCircle,
 } from '@phosphor-icons/react'
 import { format, parseISO, isBefore, startOfDay } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -32,20 +33,59 @@ function buildWhatsAppUrlForSlot(appt: Appointment, date: string) {
   return whatsAppReminder(appt.client_phone, appt.client_name, dateFormatted, time)
 }
 
-const actionBtn = (color: string, hoverBg: string): React.CSSProperties => ({
+/* Apple-style action button: larger tap target, soft fill, smooth hover */
+const actionBtn = (color: string): React.CSSProperties => ({
   display:         'flex',
   alignItems:      'center',
   justifyContent:  'center',
-  width:           30,
-  height:          30,
-  borderRadius:    8,
-  border:          `1px solid ${color}30`,
-  backgroundColor: `${color}10`,
+  width:           38,
+  height:          38,
+  borderRadius:    11,
+  border:          `1px solid ${color}2e`,
+  backgroundColor: `${color}14`,
   color,
   cursor:          'pointer',
-  transition:      'background-color 0.12s',
+  transition:      'transform 0.12s ease, background-color 0.12s ease, border-color 0.12s ease',
   flexShrink:      0,
 })
+const hoverIn  = (color: string) => (e: React.MouseEvent<HTMLElement>) => {
+  e.currentTarget.style.backgroundColor = `${color}24`
+  e.currentTarget.style.borderColor     = `${color}55`
+  e.currentTarget.style.transform       = 'translateY(-1px)'
+}
+const hoverOut = (color: string) => (e: React.MouseEvent<HTMLElement>) => {
+  e.currentTarget.style.backgroundColor = `${color}14`
+  e.currentTarget.style.borderColor     = `${color}2e`
+  e.currentTarget.style.transform       = 'translateY(0)'
+}
+
+/* Labeled data field with leading icon — premium, scannable */
+function Field({
+  icon, label, value, valueColor = '#F2EDE7', strike = false,
+}: {
+  icon: React.ReactNode
+  label: string
+  value: string
+  valueColor?: string
+  strike?: boolean
+}) {
+  return (
+    <div className="flex items-start gap-2 min-w-0">
+      <span className="mt-0.5 flex-shrink-0" style={{ color: '#6E6457' }}>{icon}</span>
+      <div className="min-w-0">
+        <p className="uppercase tracking-[0.14em]" style={{ color: '#6E6457', fontSize: '0.62rem', lineHeight: 1.4 }}>
+          {label}
+        </p>
+        <p
+          className="font-medium truncate"
+          style={{ color: valueColor, fontSize: '0.95rem', lineHeight: 1.35, textDecoration: strike ? 'line-through' : 'none' }}
+        >
+          {value}
+        </p>
+      </div>
+    </div>
+  )
+}
 
 export default function AgendaSlotRow({
   agendaSlot,
@@ -59,7 +99,6 @@ export default function AgendaSlotRow({
   onMarkCompleted,
   onViewClientHistory,
   barberMap,
-  barberCount = 0,
 }: AgendaSlotRowProps) {
   const { slot, appointment: appt } = agendaSlot
 
@@ -89,7 +128,7 @@ export default function AgendaSlotRow({
     bgImage     = 'repeating-linear-gradient(135deg,rgba(255,255,255,0.02) 0px,rgba(255,255,255,0.02) 1px,transparent 1px,transparent 8px)'
     timeTxt     = '#4A4540'
   } else if (isConfirmed) {
-    cardBg      = 'rgba(74,222,128,0.06)'
+    cardBg      = 'rgba(74,222,128,0.05)'
     accentColor = '#4ADE80'
     borderColor = 'rgba(74,222,128,0.15)'
     timeTxt     = '#4ADE80'
@@ -123,101 +162,122 @@ export default function AgendaSlotRow({
     statusLabel = { text: '✓ Completada', color: '#4ADE80' }
   }
 
+  const hasAppt    = isConfirmed || isCancelled || isCancelledByAdmin || isNoShow || isCompleted
+  const strikeName = isCancelled || isCancelledByAdmin
+  const barberName = appt?.barber_id ? barberMap?.get(appt.barber_id) : undefined
+
   return (
     <div
-      className="flex items-center gap-3 rounded-xl overflow-hidden transition-all duration-150 px-3 py-2.5"
+      className="flex items-stretch gap-4 md:gap-5 rounded-2xl transition-all duration-150 px-4 py-4 md:px-5 md:py-4"
       style={{
         backgroundColor: cardBg,
         backgroundImage: bgImage,
         border:          `1px solid ${borderColor}`,
-        borderLeft:      `3px solid ${accentColor}`,
+        borderLeft:      `4px solid ${accentColor}`,
       }}
     >
       {/* ── Left: time ─────────────────────────────────────────── */}
-      <div className="flex flex-col flex-shrink-0" style={{ width: 64 }}>
-        <span className="text-sm font-bold tabular-nums leading-tight" style={{ color: timeTxt }}>
+      <div
+        className="flex flex-col justify-center flex-shrink-0 pr-4 md:pr-5"
+        style={{ minWidth: 76, borderRight: `1px solid ${borderColor}` }}
+      >
+        <span className="font-bold tabular-nums leading-none" style={{ color: timeTxt, fontSize: '1.4rem' }}>
           {timeLabel(slot.start_time)}
         </span>
-        <span className="text-xs tabular-nums leading-tight" style={{ color: '#3A3530' }}>
+        <span className="tabular-nums mt-1" style={{ color: '#5A5450', fontSize: '0.8rem' }}>
           {timeLabel(slot.end_time)}
         </span>
       </div>
 
       {/* ── Middle: content ────────────────────────────────────── */}
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 flex flex-col justify-center">
         {isBlocked && (
           <div>
-            <p className="text-sm font-semibold" style={{ color: '#4A4540' }}>Bloqueado</p>
+            <p className="font-semibold" style={{ color: '#6E6457', fontSize: '1rem' }}>Bloqueado</p>
             {slot.blocked_reason && (
-              <p className="text-xs mt-0.5 truncate" style={{ color: '#3A3530' }}>{slot.blocked_reason}</p>
+              <p className="mt-1 truncate" style={{ color: '#4A4540', fontSize: '0.85rem' }}>{slot.blocked_reason}</p>
             )}
           </div>
         )}
 
         {isFree && (
-          <div className="flex items-center gap-1.5">
-            <Scissors size={12} style={{ color: '#3A3530' }} />
-            <p className="text-sm" style={{ color: '#3A3530' }}>Hueco libre</p>
+          <div className="flex items-center gap-2">
+            <Scissors size={17} style={{ color: '#5A5450' }} />
+            <p className="font-medium" style={{ color: '#6E6457', fontSize: '1rem' }}>Hueco libre</p>
           </div>
         )}
 
-        {(isConfirmed || isCancelled || isCancelledByAdmin || isNoShow || isCompleted) && appt && (
-          <div className="flex items-center gap-2 flex-wrap">
-            <p
-              className="text-sm font-semibold truncate"
-              style={{
-                color:          nameTxt,
-                textDecoration: (isCancelled || isCancelledByAdmin) ? 'line-through' : 'none',
-              }}
-            >
-              {appt.client_name}
-            </p>
-            <p className="text-xs" style={{ color: '#4A4540' }}>{appt.client_phone}</p>
-            {appt.notes && (
-              <p className="text-xs truncate" style={{ color: '#3A3530' }}>
-                {appt.notes}
+        {hasAppt && appt && (
+          <div className="flex flex-col gap-3">
+            {/* Name + status */}
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <p
+                className="font-semibold truncate"
+                style={{ color: nameTxt, fontSize: '1.15rem', textDecoration: strikeName ? 'line-through' : 'none' }}
+              >
+                {appt.client_name}
               </p>
-            )}
-            {appt.user_id == null && (
-              <span className="text-xs px-1.5 py-0.5 rounded font-medium"
-                style={{ backgroundColor: 'rgba(201,169,110,0.12)', color: '#C9A96E', border: '1px solid rgba(201,169,110,0.2)' }}>
-                Walk-in
-              </span>
-            )}
-            {barberCount >= 2 && appt.barber_id && barberMap?.get(appt.barber_id) && (
-              <span className="text-xs px-1.5 py-0.5 rounded-full font-medium"
-                style={{ backgroundColor: 'rgba(201,169,110,0.1)', color: '#C9A96E', border: '1px solid rgba(201,169,110,0.2)' }}>
-                {barberMap.get(appt.barber_id)}
-              </span>
-            )}
+              {appt.user_id == null && (
+                <span className="px-2 py-0.5 rounded-full font-semibold"
+                  style={{ backgroundColor: 'rgba(201,169,110,0.14)', color: '#C9A96E', border: '1px solid rgba(201,169,110,0.25)', fontSize: '0.7rem' }}>
+                  Walk-in
+                </span>
+              )}
+              {statusLabel && (
+                <span
+                  className="px-2.5 py-0.5 rounded-full font-medium"
+                  style={{
+                    backgroundColor: `${statusLabel.color}18`,
+                    color:           statusLabel.color,
+                    border:          `1px solid ${statusLabel.color}35`,
+                    fontSize:        '0.72rem',
+                  }}
+                >
+                  {statusLabel.text}
+                </span>
+              )}
+            </div>
+
+            {/* Data grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5">
+              <Field
+                icon={<Phone size={15} weight="fill" />}
+                label="Teléfono"
+                value={appt.client_phone || '—'}
+              />
+              <Field
+                icon={<Scissors size={15} />}
+                label="Servicio"
+                value={appt.notes?.trim() || 'Sin especificar'}
+              />
+              <Field
+                icon={<UserCircle size={15} weight="fill" />}
+                label="Peluquero"
+                value={barberName || 'Sin asignar'}
+              />
+              <Field
+                icon={<EnvelopeSimple size={15} />}
+                label="Cuenta"
+                value={appt.user_id == null ? 'Walk-in · sin cuenta' : (appt.client_email || '—')}
+                valueColor={appt.user_id == null ? '#7A7268' : '#F2EDE7'}
+              />
+            </div>
           </div>
         )}
       </div>
 
-      {/* ── Right: status badge + action buttons ───────────────── */}
-      {statusLabel && (
-        <span
-          className="text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0"
-          style={{
-            backgroundColor: `${statusLabel.color}15`,
-            color:           statusLabel.color,
-            border:          `1px solid ${statusLabel.color}30`,
-          }}
-        >
-          {statusLabel.text}
-        </span>
-      )}
-      <div className="flex items-center gap-1.5 flex-shrink-0">
+      {/* ── Right: action buttons ──────────────────────────────── */}
+      <div className="flex flex-wrap items-center justify-end gap-2 flex-shrink-0 self-center" style={{ maxWidth: 132 }}>
         {isFree && (
           <>
-            <button title="Crear cita"    style={actionBtn('#C9A96E', 'rgba(201,169,110,0.15)')} onClick={() => onCreateAppointment(slot)}>
-              <Plus size={13} weight="bold" />
+            <button title="Crear cita"    style={actionBtn('#C9A96E')} onMouseEnter={hoverIn('#C9A96E')} onMouseLeave={hoverOut('#C9A96E')} onClick={() => onCreateAppointment(slot)}>
+              <Plus size={17} weight="bold" />
             </button>
-            <button title="Bloquear"     style={actionBtn('#7A7268', 'rgba(255,255,255,0.07)')} onClick={() => onBlock(slot)}>
-              <Lock size={13} />
+            <button title="Bloquear"      style={actionBtn('#8A8078')} onMouseEnter={hoverIn('#8A8078')} onMouseLeave={hoverOut('#8A8078')} onClick={() => onBlock(slot)}>
+              <Lock size={16} />
             </button>
-            <button title="Editar horas" style={actionBtn('#7A7268', 'rgba(255,255,255,0.07)')} onClick={() => onEditSlot(slot)}>
-              <PencilSimple size={13} />
+            <button title="Editar horas"  style={actionBtn('#8A8078')} onMouseEnter={hoverIn('#8A8078')} onMouseLeave={hoverOut('#8A8078')} onClick={() => onEditSlot(slot)}>
+              <PencilSimple size={16} />
             </button>
           </>
         )}
@@ -228,46 +288,47 @@ export default function AgendaSlotRow({
               href={buildWhatsAppUrlForSlot(appt, slot.date)}
               target="_blank" rel="noopener noreferrer"
               title="WhatsApp"
-              style={{ ...actionBtn('#4ADE80', 'rgba(74,222,128,0.1)'), textDecoration: 'none' }}
+              style={{ ...actionBtn('#4ADE80'), textDecoration: 'none' }}
+              onMouseEnter={hoverIn('#4ADE80')} onMouseLeave={hoverOut('#4ADE80')}
             >
-              <WhatsappLogo size={13} />
+              <WhatsappLogo size={17} />
             </a>
             {onRescheduleAppointment && (
-              <button title="Reagendar" style={actionBtn('#C9A96E', 'rgba(201,169,110,0.1)')} onClick={() => onRescheduleAppointment(appt)}>
-                <ArrowsClockwise size={13} />
+              <button title="Reagendar" style={actionBtn('#C9A96E')} onMouseEnter={hoverIn('#C9A96E')} onMouseLeave={hoverOut('#C9A96E')} onClick={() => onRescheduleAppointment(appt)}>
+                <ArrowsClockwise size={16} />
               </button>
             )}
             {onViewClientHistory && (
-              <button title="Ver cliente" style={actionBtn('#7A7268', 'rgba(255,255,255,0.07)')} onClick={() => onViewClientHistory(appt)}>
-                <User size={13} />
+              <button title="Ver cliente" style={actionBtn('#8A8078')} onMouseEnter={hoverIn('#8A8078')} onMouseLeave={hoverOut('#8A8078')} onClick={() => onViewClientHistory(appt)}>
+                <User size={16} />
               </button>
             )}
             {isPastSlot && onMarkCompleted && (
-              <button title="Completada" style={actionBtn('#4ADE80', 'rgba(74,222,128,0.1)')} onClick={() => onMarkCompleted(appt)}>
-                <CheckCircle size={13} />
+              <button title="Completada" style={actionBtn('#4ADE80')} onMouseEnter={hoverIn('#4ADE80')} onMouseLeave={hoverOut('#4ADE80')} onClick={() => onMarkCompleted(appt)}>
+                <CheckCircle size={16} />
               </button>
             )}
             {onMarkNoShow && (
-              <button title="No-show" style={actionBtn('#EF4444', 'rgba(239,68,68,0.1)')} onClick={() => onMarkNoShow(appt)}>
-                <UserMinus size={13} />
+              <button title="No-show" style={actionBtn('#EF4444')} onMouseEnter={hoverIn('#EF4444')} onMouseLeave={hoverOut('#EF4444')} onClick={() => onMarkNoShow(appt)}>
+                <UserMinus size={16} />
               </button>
             )}
-            <button title="Editar"   style={actionBtn('#7A7268', 'rgba(255,255,255,0.07)')} onClick={() => onEditAppointment(appt)}>
-              <PencilSimple size={13} />
+            <button title="Editar"   style={actionBtn('#8A8078')} onMouseEnter={hoverIn('#8A8078')} onMouseLeave={hoverOut('#8A8078')} onClick={() => onEditAppointment(appt)}>
+              <PencilSimple size={16} />
             </button>
-            <button title="Cancelar" style={actionBtn('#FF8080', 'rgba(255,80,80,0.1)')}  onClick={() => onCancelAppointment(appt)}>
-              <X size={13} weight="bold" />
+            <button title="Cancelar" style={actionBtn('#FF8080')} onMouseEnter={hoverIn('#FF8080')} onMouseLeave={hoverOut('#FF8080')} onClick={() => onCancelAppointment(appt)}>
+              <X size={16} weight="bold" />
             </button>
           </>
         )}
 
         {isBlocked && (
           <>
-            <button title="Desbloquear" style={actionBtn('#C9A96E', 'rgba(201,169,110,0.1)')} onClick={() => onBlock(slot)}>
-              <LockOpen size={13} />
+            <button title="Desbloquear" style={actionBtn('#C9A96E')} onMouseEnter={hoverIn('#C9A96E')} onMouseLeave={hoverOut('#C9A96E')} onClick={() => onBlock(slot)}>
+              <LockOpen size={16} />
             </button>
-            <button title="Editar motivo" style={actionBtn('#7A7268', 'rgba(255,255,255,0.07)')} onClick={() => onEditSlot(slot)}>
-              <PencilSimple size={13} />
+            <button title="Editar motivo" style={actionBtn('#8A8078')} onMouseEnter={hoverIn('#8A8078')} onMouseLeave={hoverOut('#8A8078')} onClick={() => onEditSlot(slot)}>
+              <PencilSimple size={16} />
             </button>
           </>
         )}

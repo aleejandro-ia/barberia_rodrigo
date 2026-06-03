@@ -15,6 +15,7 @@ export interface Appointment {
   slot_end_time: string
   client_name: string
   client_phone: string
+  client_email?: string | null   // cuenta con la que reservó (auth.users); null = walk-in / sin cuenta
   notes?: string
   status: AppointmentStatus
   created_at: string

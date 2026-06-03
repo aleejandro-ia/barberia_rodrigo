@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { getUser, isAdmin } from '@/lib/auth'
 import { NextRequest, NextResponse } from 'next/server'
 import type { AgendaDay, AgendaSlot, AvailabilitySlot, Appointment } from '@/types'
@@ -57,6 +58,32 @@ export async function GET(req: NextRequest) {
 
   const slots = (slotsRaw ?? []) as AvailabilitySlot[]
   const appts = (apptRaw ?? []) as Appointment[]
+
+  // Enrich appointments with the email of the account that booked them.
+  // Email lives in auth.users (not profiles) → needs service-role client.
+  // Degrades gracefully: on any failure, emails stay null (walk-ins have no account).
+  try {
+    const userIds = Array.from(
+      new Set(appts.map((a) => a.user_id).filter((id): id is string => !!id))
+    )
+    if (userIds.length > 0) {
+      const admin = createAdminClient()
+      const { data: profilesWithEmail } = await admin
+        .schema('auth')
+        .from('users')
+        .select('id, email')
+        .in('id', userIds)
+      const emailMap = new Map<string, string>()
+      for (const u of profilesWithEmail ?? []) {
+        if (u.email) emailMap.set(u.id as string, u.email as string)
+      }
+      for (const a of appts) {
+        if (a.user_id) a.client_email = emailMap.get(a.user_id) ?? null
+      }
+    }
+  } catch (e) {
+    console.warn('[admin/agenda] email enrichment skipped:', e)
+  }
 
   // Build a lookup: "date|start_time|barber_id" → appointments[]
   // barber_id in key prevents a slot from one barber picking up another barber's appointment

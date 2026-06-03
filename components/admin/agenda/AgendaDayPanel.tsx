@@ -54,12 +54,12 @@ export default function AgendaDayPanel({
 
   if (loading || !day) {
     return (
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-3">
         {Array.from({ length: 6 }).map((_, i) => (
           <div
             key={i}
-            className="rounded-xl animate-pulse"
-            style={{ height: 64, backgroundColor: 'rgba(201,169,110,0.05)' }}
+            className="rounded-2xl animate-pulse"
+            style={{ height: 104, backgroundColor: 'rgba(201,169,110,0.05)' }}
           />
         ))}
       </div>
@@ -70,14 +70,14 @@ export default function AgendaDayPanel({
   const dateCapitalized = dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1)
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <div>
-          <p className="text-base font-semibold" style={{ color: '#F2EDE7' }}>
+          <p className="text-xl font-bold tracking-tight" style={{ color: '#F2EDE7' }}>
             {dateCapitalized}
           </p>
-          <p className="text-xs mt-0.5" style={{ color: '#4A4540' }}>
+          <p className="text-sm mt-1" style={{ color: '#6E6457' }}>
             {day.confirmedCount > 0 && `${day.confirmedCount} cita${day.confirmedCount > 1 ? 's' : ''}`}
             {day.freeCount > 0      && ` · ${day.freeCount} libre${day.freeCount > 1 ? 's' : ''}`}
             {day.blockedCount > 0   && ` · ${day.blockedCount} bloqueado${day.blockedCount > 1 ? 's' : ''}`}
@@ -87,7 +87,7 @@ export default function AgendaDayPanel({
 
         <button
           onClick={() => onOpenBulkCreator(day.date)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold transition-all flex-shrink-0"
           style={{
             backgroundColor: 'rgba(201,169,110,0.1)',
             color:           '#C9A96E',
@@ -97,7 +97,7 @@ export default function AgendaDayPanel({
           onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(201,169,110,0.18)')}
           onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'rgba(201,169,110,0.1)')}
         >
-          <Plus size={11} weight="bold" />
+          <Plus size={14} weight="bold" />
           Añadir franjas
         </button>
       </div>
@@ -118,7 +118,7 @@ export default function AgendaDayPanel({
           </button>
         </div>
       ) : (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-3">
           {day.slots.map(agendaSlot => (
             <AgendaSlotRow
               key={agendaSlot.slot.id}
