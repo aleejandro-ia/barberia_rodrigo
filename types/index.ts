@@ -96,6 +96,10 @@ export interface Service {
   duration_minutes: number
   is_active: boolean
   display_order: number
+  description?: string | null
+  show_in_landing?: boolean
+  show_in_booking?: boolean
+  icon_key?: string
   created_at?: string
 }
 

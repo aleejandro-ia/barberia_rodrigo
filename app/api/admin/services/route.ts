@@ -32,6 +32,10 @@ export async function POST(req: Request) {
       price_eur: body.price_eur ?? 0,
       duration_minutes: body.duration_minutes ?? 30,
       display_order: body.display_order ?? 0,
+      description: body.description ?? null,
+      icon_key: body.icon_key ?? 'scissors',
+      show_in_landing: body.show_in_landing ?? true,
+      show_in_booking: body.show_in_booking ?? true,
       is_active: true,
     })
     .select()

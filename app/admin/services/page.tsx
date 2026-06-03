@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { PencilSimple, Trash, Plus, Check, X } from '@phosphor-icons/react'
 import type { Service } from '@/types'
+import { SERVICE_ICON_OPTIONS } from '@/components/landing/serviceIcons'
 
 /* ─── Helpers ────────────────────────────────────────────────── */
 const inputStyle: React.CSSProperties = {
@@ -16,12 +17,35 @@ const inputStyle: React.CSSProperties = {
   width:           '100%',
 }
 
+/* ─── Small toggle switch ────────────────────────────────────── */
+function Toggle({ on, onClick, title }: { on: boolean; onClick: () => void; title: string }) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      className="w-8 h-5 rounded-full transition-all flex-shrink-0 relative"
+      style={{
+        backgroundColor: on ? '#C9A96E' : 'rgba(255,255,255,0.08)',
+        border:          '1px solid rgba(201,169,110,0.2)',
+        cursor:          'pointer',
+      }}
+    >
+      <span
+        className="absolute top-0.5 w-3.5 h-3.5 rounded-full transition-all"
+        style={{ backgroundColor: on ? '#0E0B08' : '#4A4540', left: on ? '14px' : '2px' }}
+      />
+    </button>
+  )
+}
+
 /* ─── New service form ───────────────────────────────────────── */
 function NewServiceForm({ onCreated }: { onCreated: () => void }) {
   const [open,     setOpen]     = useState(false)
   const [name,     setName]     = useState('')
+  const [desc,     setDesc]     = useState('')
   const [price,    setPrice]    = useState('')
   const [duration, setDuration] = useState('30')
+  const [iconKey,  setIconKey]  = useState('scissors')
   const [loading,  setLoading]  = useState(false)
   const [error,    setError]    = useState<string | null>(null)
 
@@ -33,13 +57,15 @@ function NewServiceForm({ onCreated }: { onCreated: () => void }) {
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({
         name:             name.trim(),
+        description:      desc.trim() || null,
+        icon_key:         iconKey,
         price_eur:        parseFloat(price) || 0,
         duration_minutes: parseInt(duration) || 30,
       }),
     })
     setLoading(false)
     if (!res.ok) { setError('Error al crear el servicio.'); return }
-    setName(''); setPrice(''); setDuration('30')
+    setName(''); setDesc(''); setPrice(''); setDuration('30'); setIconKey('scissors')
     setOpen(false)
     onCreated()
   }
@@ -63,7 +89,7 @@ function NewServiceForm({ onCreated }: { onCreated: () => void }) {
       style={{ backgroundColor: '#161310', border: '1px solid rgba(201,169,110,0.15)' }}
     >
       <p className="text-sm font-semibold mb-3" style={{ color: '#F2EDE7' }}>Nuevo servicio</p>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
         <div>
           <label className="text-xs block mb-1" style={{ color: '#7A7268' }}>Nombre *</label>
           <input
@@ -71,6 +97,24 @@ function NewServiceForm({ onCreated }: { onCreated: () => void }) {
             placeholder="Corte + barba" maxLength={100} style={inputStyle}
           />
         </div>
+        <div>
+          <label className="text-xs block mb-1" style={{ color: '#7A7268' }}>Icono (landing)</label>
+          <select value={iconKey} onChange={e => setIconKey(e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }}>
+            {SERVICE_ICON_OPTIONS.map(o => (
+              <option key={o.key} value={o.key} style={{ backgroundColor: '#1A1A1A' }}>{o.label}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+      <div className="mb-3">
+        <label className="text-xs block mb-1" style={{ color: '#7A7268' }}>Descripción (landing)</label>
+        <textarea
+          value={desc} onChange={e => setDesc(e.target.value)}
+          placeholder="Texto que aparece en el card de la landing" maxLength={200} rows={2}
+          style={{ ...inputStyle, resize: 'vertical' }}
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-3 mb-3">
         <div>
           <label className="text-xs block mb-1" style={{ color: '#7A7268' }}>Precio (€)</label>
           <input
@@ -115,37 +159,39 @@ function NewServiceForm({ onCreated }: { onCreated: () => void }) {
 
 /* ─── Service row ────────────────────────────────────────────── */
 function ServiceRow({ service, onRefresh }: { service: Service; onRefresh: () => void }) {
-  const [editing,     setEditing]     = useState(false)
-  const [editName,    setEditName]    = useState(service.name)
-  const [editPrice,   setEditPrice]   = useState(String(service.price_eur))
-  const [editDur,     setEditDur]     = useState(String(service.duration_minutes))
-  const [saving,      setSaving]      = useState(false)
-  const [deleting,    setDeleting]    = useState(false)
-  const [confirmDel,  setConfirmDel]  = useState(false)
+  const [editing,   setEditing]   = useState(false)
+  const [editName,  setEditName]  = useState(service.name)
+  const [editDesc,  setEditDesc]  = useState(service.description ?? '')
+  const [editPrice, setEditPrice] = useState(String(service.price_eur))
+  const [editDur,   setEditDur]   = useState(String(service.duration_minutes))
+  const [editIcon,  setEditIcon]  = useState(service.icon_key ?? 'scissors')
+  const [saving,    setSaving]    = useState(false)
+  const [deleting,  setDeleting]  = useState(false)
+  const [confirmDel, setConfirmDel] = useState(false)
 
-  async function handleToggleActive() {
+  const landingOn = service.show_in_landing ?? true
+  const bookingOn = service.show_in_booking ?? true
+
+  async function patch(body: Record<string, unknown>) {
     await fetch(`/api/admin/services/${service.id}`, {
       method:  'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ is_active: !service.is_active }),
+      body:    JSON.stringify(body),
     })
     onRefresh()
   }
 
   async function handleSave() {
     setSaving(true)
-    await fetch(`/api/admin/services/${service.id}`, {
-      method:  'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({
-        name:             editName.trim(),
-        price_eur:        parseFloat(editPrice) || 0,
-        duration_minutes: parseInt(editDur)     || 30,
-      }),
+    await patch({
+      name:             editName.trim(),
+      description:      editDesc.trim() || null,
+      icon_key:         editIcon,
+      price_eur:        parseFloat(editPrice) || 0,
+      duration_minutes: parseInt(editDur)     || 30,
     })
     setSaving(false)
     setEditing(false)
-    onRefresh()
   }
 
   async function handleDelete() {
@@ -161,9 +207,20 @@ function ServiceRow({ service, onRefresh }: { service: Service; onRefresh: () =>
         className="rounded-xl px-4 py-3"
         style={{ backgroundColor: 'rgba(201,169,110,0.06)', border: '1px solid rgba(201,169,110,0.15)' }}
       >
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
           <input type="text" value={editName} onChange={e => setEditName(e.target.value)}
             placeholder="Nombre" maxLength={100} style={{ ...inputStyle, padding: '0.4rem 0.6rem' }} />
+          <select value={editIcon} onChange={e => setEditIcon(e.target.value)}
+            style={{ ...inputStyle, padding: '0.4rem 0.6rem', cursor: 'pointer' }}>
+            {SERVICE_ICON_OPTIONS.map(o => (
+              <option key={o.key} value={o.key} style={{ backgroundColor: '#1A1A1A' }}>{o.label}</option>
+            ))}
+          </select>
+        </div>
+        <textarea value={editDesc} onChange={e => setEditDesc(e.target.value)}
+          placeholder="Descripción (landing)" maxLength={200} rows={2}
+          style={{ ...inputStyle, padding: '0.4rem 0.6rem', resize: 'vertical', marginBottom: '0.5rem' }} />
+        <div className="grid grid-cols-2 gap-2 mb-3">
           <input type="number" value={editPrice} onChange={e => setEditPrice(e.target.value)}
             placeholder="Precio €" min="0" step="0.5" style={{ ...inputStyle, padding: '0.4rem 0.6rem' }} />
           <input type="number" value={editDur} onChange={e => setEditDur(e.target.value)}
@@ -191,47 +248,48 @@ function ServiceRow({ service, onRefresh }: { service: Service; onRefresh: () =>
     )
   }
 
+  const visible = landingOn || bookingOn
+
   return (
     <div
       className="group flex items-center gap-3 rounded-xl px-4 py-3 transition-all"
       style={{
-        backgroundColor: service.is_active ? 'rgba(201,169,110,0.04)' : 'rgba(255,255,255,0.02)',
-        border:          `1px solid ${service.is_active ? 'rgba(201,169,110,0.1)' : 'rgba(255,255,255,0.05)'}`,
-        opacity:         service.is_active ? 1 : 0.6,
+        backgroundColor: visible ? 'rgba(201,169,110,0.04)' : 'rgba(255,255,255,0.02)',
+        border:          `1px solid ${visible ? 'rgba(201,169,110,0.1)' : 'rgba(255,255,255,0.05)'}`,
+        opacity:         visible ? 1 : 0.6,
       }}
     >
-      {/* Active toggle */}
-      <button
-        onClick={handleToggleActive}
-        title={service.is_active ? 'Desactivar' : 'Activar'}
-        className="w-8 h-5 rounded-full transition-all flex-shrink-0 relative"
-        style={{
-          backgroundColor: service.is_active ? '#C9A96E' : 'rgba(255,255,255,0.08)',
-          border:          '1px solid rgba(201,169,110,0.2)',
-          cursor:          'pointer',
-        }}
-      >
-        <span
-          className="absolute top-0.5 w-3.5 h-3.5 rounded-full transition-all"
-          style={{
-            backgroundColor: service.is_active ? '#0E0B08' : '#4A4540',
-            left:            service.is_active ? '14px' : '2px',
-          }}
-        />
-      </button>
+      {/* Name + description */}
+      <div className="flex-1 min-w-0">
+        <span className="text-sm font-medium block truncate" style={{ color: '#F2EDE7' }}>
+          {service.name}
+        </span>
+        {service.description && (
+          <span className="text-xs block truncate" style={{ color: '#5A5450' }}>
+            {service.description}
+          </span>
+        )}
+      </div>
 
-      {/* Name */}
-      <span className="flex-1 text-sm font-medium" style={{ color: '#F2EDE7' }}>
-        {service.name}
-      </span>
+      {/* Toggles */}
+      <div className="flex items-center gap-3 flex-shrink-0">
+        <div className="flex flex-col items-center gap-1">
+          <Toggle on={landingOn} onClick={() => patch({ show_in_landing: !landingOn })} title="Mostrar en landing" />
+          <span className="text-[0.6rem] uppercase tracking-wide" style={{ color: '#4A4540' }}>Landing</span>
+        </div>
+        <div className="flex flex-col items-center gap-1">
+          <Toggle on={bookingOn} onClick={() => patch({ show_in_booking: !bookingOn })} title="Mostrar al reservar" />
+          <span className="text-[0.6rem] uppercase tracking-wide" style={{ color: '#4A4540' }}>Reserva</span>
+        </div>
+      </div>
 
       {/* Price */}
-      <span className="text-sm tabular-nums" style={{ color: '#C9A96E', minWidth: 48, textAlign: 'right' }}>
+      <span className="text-sm tabular-nums flex-shrink-0" style={{ color: '#C9A96E', minWidth: 48, textAlign: 'right' }}>
         {service.price_eur}€
       </span>
 
       {/* Duration */}
-      <span className="text-xs" style={{ color: '#7A7268', minWidth: 48, textAlign: 'right' }}>
+      <span className="text-xs flex-shrink-0" style={{ color: '#7A7268', minWidth: 48, textAlign: 'right' }}>
         {service.duration_minutes} min
       </span>
 
@@ -316,7 +374,7 @@ export default function AdminServicesPage() {
             Servicios
           </h1>
           <p className="mt-1 text-sm" style={{ color: '#7A7268' }}>
-            Gestiona los servicios disponibles para reservas.
+            Edita nombre, descripción y precio. Controla si cada servicio sale en la landing y/o al reservar.
           </p>
         </div>
       </div>
@@ -340,14 +398,6 @@ export default function AdminServicesPage() {
         </div>
       ) : (
         <div className="flex flex-col gap-2 mt-4">
-          {/* Table header */}
-          <div className="grid px-4 pb-1" style={{ gridTemplateColumns: '2rem 1fr 4rem 4rem 3rem' }}>
-            <span />
-            <span className="text-xs uppercase tracking-widest" style={{ color: '#3A3530' }}>Nombre</span>
-            <span className="text-xs uppercase tracking-widest text-right" style={{ color: '#3A3530' }}>Precio</span>
-            <span className="text-xs uppercase tracking-widest text-right" style={{ color: '#3A3530' }}>Duración</span>
-            <span />
-          </div>
           {services.map(s => (
             <ServiceRow key={s.id} service={s} onRefresh={fetchServices} />
           ))}
