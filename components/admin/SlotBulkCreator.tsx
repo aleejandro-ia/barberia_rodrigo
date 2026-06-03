@@ -14,6 +14,9 @@ interface Props {
   defaultDate?: string
   barberId: string
   onCreated?: () => void
+  /** When rendered inside a modal that already provides card chrome + title,
+   *  drop the outer card background/border/padding and the duplicate heading. */
+  embedded?: boolean
 }
 
 const inputStyle: React.CSSProperties = {
@@ -28,7 +31,7 @@ const inputStyle: React.CSSProperties = {
   transition: 'border-color 0.15s',
 }
 
-export default function SlotBulkCreator({ defaultDate = '', barberId, onCreated }: Props) {
+export default function SlotBulkCreator({ defaultDate = '', barberId, onCreated, embedded = false }: Props) {
   const [date, setDate] = useState(defaultDate)
   const [fromTime, setFromTime] = useState('09:00')
   const [toTime, setToTime] = useState('13:00')
@@ -77,12 +80,14 @@ export default function SlotBulkCreator({ defaultDate = '', barberId, onCreated 
 
   return (
     <div
-      className="rounded-2xl p-6"
-      style={{ backgroundColor: '#161310', border: '1px solid rgba(201,169,110,0.1)' }}
+      className={embedded ? '' : 'rounded-2xl p-6'}
+      style={embedded ? undefined : { backgroundColor: '#161310', border: '1px solid rgba(201,169,110,0.1)' }}
     >
-      <h2 className="text-sm font-semibold uppercase tracking-widest mb-5" style={{ color: '#C9A96E' }}>
-        Crear franjas horarias
-      </h2>
+      {!embedded && (
+        <h2 className="text-sm font-semibold uppercase tracking-widest mb-5" style={{ color: '#C9A96E' }}>
+          Crear franjas horarias
+        </h2>
+      )}
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

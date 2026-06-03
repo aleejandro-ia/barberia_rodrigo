@@ -811,7 +811,7 @@ export default function AgendaModal({ mode, onClose, onSuccess, barberId }: Agen
           <EditSlotTimesForm slot={mode.slot} onClose={onClose} onSuccess={handleSuccess} />
         )}
         {mode.type === 'bulk-creator' && barberId && (
-          <SlotBulkCreator defaultDate={mode.date} barberId={barberId} onCreated={handleSuccess} />
+          <SlotBulkCreator defaultDate={mode.date} barberId={barberId} onCreated={handleSuccess} embedded />
         )}
         {mode.type === 'reschedule-appointment' && (
           <RescheduleAppointmentForm appointment={mode.appointment} onClose={onClose} onSuccess={handleSuccess} />

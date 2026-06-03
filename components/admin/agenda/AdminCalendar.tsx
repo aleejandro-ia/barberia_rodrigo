@@ -69,9 +69,6 @@ export default function AdminCalendar({ selectedDate, onSelectDate, barberId }: 
   const firstDayOfWeek = (getDay(monthStart) + 6) % 7
   const paddingDays   = Array.from({ length: firstDayOfWeek })
 
-  const canGoPrev = true  // admin can view past months
-  const canGoNext = true
-
   return (
     <div
       className="rounded-2xl p-4 select-none w-full max-w-sm"

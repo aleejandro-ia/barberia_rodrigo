@@ -44,17 +44,20 @@ export default function BookingForm({
       setError('El nombre debe tener al menos 2 caracteres.')
       return
     }
-    if (!phone.trim() || phone.trim().length < 6) {
-      setError('Introduce un teléfono válido.')
+    // Server requires exactly 9 digits after stripping spaces — validate the
+    // same rule here so a valid-looking number is never rejected post-submit.
+    const cleanPhone = phone.replace(/\s/g, '')
+    if (!/^\d{9}$/.test(cleanPhone)) {
+      setError('El teléfono debe tener 9 dígitos, sin prefijo.')
       return
     }
-    onReview({ name: name.trim(), phone: phone.trim(), notes: notes.trim() })
+    onReview({ name: name.trim(), phone: cleanPhone, notes: notes.trim() })
   }
 
   const inputStyle = {
-    backgroundColor: '#1A1A1A',
+    backgroundColor: '#1C1915',
     border: '1px solid rgba(201,169,110,0.2)',
-    color: '#F5F5F5',
+    color: '#F2EDE7',
     borderRadius: '0.75rem',
     padding: '0.75rem 1rem',
     fontSize: '0.875rem',
@@ -67,7 +70,7 @@ export default function BookingForm({
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="booking-name" className="text-xs font-medium" style={{ color: '#888888' }}>
+          <label htmlFor="booking-name" className="text-xs font-medium" style={{ color: '#7A7268' }}>
             Nombre
           </label>
           <input
@@ -86,27 +89,28 @@ export default function BookingForm({
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="booking-phone" className="text-xs font-medium" style={{ color: '#888888' }}>
+          <label htmlFor="booking-phone" className="text-xs font-medium" style={{ color: '#7A7268' }}>
             Telefono
           </label>
           <input
             id="booking-phone"
             type="tel"
+            inputMode="numeric"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            placeholder="+34 600 000 000"
+            placeholder="600 123 456"
             required
-            minLength={6}
             maxLength={20}
             style={inputStyle}
             onFocus={(e) => (e.target.style.borderColor = 'rgba(201,169,110,0.6)')}
             onBlur={(e) => (e.target.style.borderColor = 'rgba(201,169,110,0.2)')}
           />
+          <span className="text-xs" style={{ color: '#4A4540' }}>9 dígitos, sin prefijo</span>
         </div>
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="booking-notes" className="text-xs font-medium" style={{ color: '#888888' }}>
+        <label htmlFor="booking-notes" className="text-xs font-medium" style={{ color: '#7A7268' }}>
           Notas opcionales
         </label>
         <textarea
@@ -138,7 +142,7 @@ export default function BookingForm({
       <button
         type="submit"
         className="mt-2 py-3.5 rounded-full text-sm font-semibold transition-opacity hover:opacity-90"
-        style={{ backgroundColor: '#C9A96E', color: '#0A0A0A' }}
+        style={{ backgroundColor: '#C9A96E', color: '#0E0B08' }}
       >
         Revisar reserva →
       </button>
