@@ -68,14 +68,18 @@ export async function GET(req: NextRequest) {
     )
     if (userIds.length > 0) {
       const admin = createAdminClient()
-      const { data: profilesWithEmail } = await admin
-        .schema('auth')
-        .from('users')
-        .select('id, email')
-        .in('id', userIds)
+      // auth.users is NOT exposed via PostgREST by default — must use the
+      // Auth Admin API (GoTrue), which the service-role key authorizes.
       const emailMap = new Map<string, string>()
-      for (const u of profilesWithEmail ?? []) {
-        if (u.email) emailMap.set(u.id as string, u.email as string)
+      const results = await Promise.all(
+        userIds.map(async (id) => {
+          const { data, error } = await admin.auth.admin.getUserById(id)
+          if (error || !data?.user?.email) return null
+          return [id, data.user.email] as const
+        })
+      )
+      for (const r of results) {
+        if (r) emailMap.set(r[0], r[1])
       }
       for (const a of appts) {
         if (a.user_id) a.client_email = emailMap.get(a.user_id) ?? null
