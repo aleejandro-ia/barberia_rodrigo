@@ -170,7 +170,7 @@ export default function ServicesSection() {
 
               {/* Price */}
               <div className="mt-auto pt-4 w-full" style={{ borderTop: '1px solid rgba(201,169,110,0.08)' }}>
-                <p className="text-sm uppercase tracking-widest mb-1" style={{ color: '#4A4540' }}>
+                <p className="text-base uppercase tracking-widest mb-1" style={{ color: '#4A4540' }}>
                   Desde
                 </p>
                 <p className="text-3xl font-bold" style={{ color: '#C9A96E' }}>

@@ -75,7 +75,7 @@ export default function BeforeAfterSection() {
               className="flex flex-col gap-2"
             >
               {item.description && (
-                <p className="text-xs uppercase tracking-widest" style={{ color: '#4A4540' }}>{item.description}</p>
+                <p className="text-sm uppercase tracking-widest" style={{ color: '#4A4540' }}>{item.description}</p>
               )}
               <div className="grid grid-cols-2 gap-1.5">
                 <div className="flex flex-col gap-1">
@@ -85,7 +85,7 @@ export default function BeforeAfterSection() {
                       : <Placeholder label="Antes" />
                     }
                   </div>
-                  <span className="text-center text-xs uppercase tracking-widest font-medium" style={{ color: '#4A4540' }}>Antes</span>
+                  <span className="text-center text-sm uppercase tracking-widest font-medium" style={{ color: '#4A4540' }}>Antes</span>
                 </div>
                 <div className="flex flex-col gap-1">
                   <div className="overflow-hidden rounded-xl" style={{ aspectRatio: '3/4', border: '1px solid rgba(201,169,110,0.18)' }}>
@@ -94,7 +94,7 @@ export default function BeforeAfterSection() {
                       : <Placeholder label="Después" />
                     }
                   </div>
-                  <span className="text-center text-xs uppercase tracking-widest font-medium" style={{ color: '#C9A96E' }}>Después</span>
+                  <span className="text-center text-sm uppercase tracking-widest font-medium" style={{ color: '#C9A96E' }}>Después</span>
                 </div>
               </div>
             </motion.div>
