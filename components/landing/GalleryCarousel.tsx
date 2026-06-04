@@ -156,6 +156,10 @@ export default function GalleryCarousel({ images, loading }: GalleryCarouselProp
           paddingTop: '12px',
           willChange: 'transform',
           userSelect: 'none',
+          // pan-y lets the browser keep vertical page scroll while we own the
+          // horizontal drag — without this, touch devices hijack the gesture
+          // for scrolling and the carousel stutters / won't swipe.
+          touchAction: 'pan-y',
         }}
       >
         {tiles.map((img, i) => (

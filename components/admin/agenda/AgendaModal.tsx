@@ -786,7 +786,7 @@ export default function AgendaModal({ mode, onClose, onSuccess, barberId }: Agen
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose() }}>
       <DialogContent
-        className="max-w-md"
+        className="max-w-md max-h-[90vh] overflow-y-auto"
         style={{ backgroundColor: '#161310', border: '1px solid rgba(201,169,110,0.15)', color: '#F2EDE7' }}
       >
         <DialogHeader>
