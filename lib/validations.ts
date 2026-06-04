@@ -57,3 +57,13 @@ export const adminEditAppointmentSchema = z.object({
     .pipe(z.string().regex(/^\d{9}$/, 'Teléfono debe tener 9 dígitos')),
   notes: z.string().max(500).optional(),
 })
+
+/* ─── Client profile schema ──────────────────────────────────── */
+
+export const updateProfileSchema = z.object({
+  full_name: z.string().min(2).max(100),
+  phone: z
+    .string()
+    .transform((v) => v.replace(/\s/g, ''))
+    .pipe(z.string().regex(/^\d{9}$/, 'Teléfono debe tener 9 dígitos')),
+})

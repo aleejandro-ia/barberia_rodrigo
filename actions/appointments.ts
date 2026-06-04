@@ -76,14 +76,25 @@ export async function bookAppointment(data: unknown, barber_id?: string | null):
 
   if (error) return { error: 'SLOT_TAKEN' as const }
 
-  // Persist name + phone back to the user's profile so future bookings
-  // auto-fill. Google never provides a phone number, so we capture it here
-  // on the first booking. Best-effort: never let this fail the booking.
+  // Capture name + phone into the user's profile ONLY when missing, so future
+  // bookings auto-fill. Google never provides a phone number, so the first
+  // booking seeds it. The profile is the source of truth: a user-edited value
+  // (via "Mis datos") is never overwritten by a later booking.
+  // Best-effort: never let this fail the booking.
   try {
-    await supabase
+    const { data: prof } = await supabase
       .from('profiles')
-      .update({ full_name: client_name, phone: client_phone })
+      .select('full_name, phone')
       .eq('id', user.id)
+      .maybeSingle()
+
+    const patch: { full_name?: string; phone?: string } = {}
+    if (!prof?.full_name?.trim()) patch.full_name = client_name
+    if (!prof?.phone?.trim())     patch.phone = client_phone
+
+    if (Object.keys(patch).length > 0) {
+      await supabase.from('profiles').update(patch).eq('id', user.id)
+    }
   } catch (e) {
     console.warn('[bookAppointment] profile sync skipped:', e)
   }

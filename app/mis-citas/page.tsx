@@ -3,9 +3,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { ArrowLeft, Scissors, CalendarBlank } from '@phosphor-icons/react'
+import { ArrowLeft, Scissors, CalendarBlank, UserCircle } from '@phosphor-icons/react'
 import type { Appointment, BookingSettings, Barber } from '@/types'
 import MisCitasCard from '@/components/client/MisCitasCard'
+import MisDatosModal from '@/components/client/MisDatosModal'
 
 const DEFAULT_SETTINGS: Partial<BookingSettings> = {
   cancel_hours_before: 3,
@@ -31,6 +32,7 @@ export default function MisCitasPage() {
   const [settings, setSettings] = useState<Partial<BookingSettings>>(DEFAULT_SETTINGS)
   const [barberMap, setBarberMap] = useState<Map<string, string>>(new Map())
   const [barberCount, setBarberCount] = useState(0)
+  const [profileOpen, setProfileOpen] = useState(false)
 
   // Auth check
   useEffect(() => {
@@ -144,37 +146,55 @@ export default function MisCitasPage() {
     >
       {/* Header */}
       <div
-        className="sticky top-0 z-10 px-4 py-4 flex items-center gap-3"
+        className="sticky top-0 z-10 px-4 py-4 flex items-center justify-between gap-3"
         style={{
           backgroundColor: 'rgba(14,11,8,0.95)',
           borderBottom: '1px solid rgba(201,169,110,0.1)',
           backdropFilter: 'blur(8px)',
         }}
       >
-        <button
-          onClick={() => router.push('/')}
-          className="flex items-center justify-center w-9 h-9 rounded-full transition-all duration-150"
-          style={{
-            color: '#C9A96E',
-            backgroundColor: 'rgba(201,169,110,0.08)',
-            border: '1px solid rgba(201,169,110,0.15)',
-          }}
-          aria-label="Volver al inicio"
-        >
-          <ArrowLeft size={16} weight="bold" />
-        </button>
-        <div>
-          <h1 className="text-base font-semibold" style={{ color: '#F2EDE7' }}>
-            Mis citas
-          </h1>
-          {!loading && !fetchError && (
-            <p className="text-xs" style={{ color: '#7A7268' }}>
-              {appointments.length === 0
-                ? 'Sin citas'
-                : `${appointments.length} cita${appointments.length !== 1 ? 's' : ''}`}
-            </p>
-          )}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => router.push('/')}
+            className="flex items-center justify-center w-9 h-9 rounded-full transition-all duration-150"
+            style={{
+              color: '#C9A96E',
+              backgroundColor: 'rgba(201,169,110,0.08)',
+              border: '1px solid rgba(201,169,110,0.15)',
+            }}
+            aria-label="Volver al inicio"
+          >
+            <ArrowLeft size={16} weight="bold" />
+          </button>
+          <div>
+            <h1 className="text-base font-semibold" style={{ color: '#F2EDE7' }}>
+              Mis citas
+            </h1>
+            {!loading && !fetchError && (
+              <p className="text-xs" style={{ color: '#7A7268' }}>
+                {appointments.length === 0
+                  ? 'Sin citas'
+                  : `${appointments.length} cita${appointments.length !== 1 ? 's' : ''}`}
+              </p>
+            )}
+          </div>
         </div>
+
+        {authenticated && (
+          <button
+            onClick={() => setProfileOpen(true)}
+            className="flex items-center gap-2 h-9 px-3 rounded-full transition-all duration-150 hover:opacity-90"
+            style={{
+              color: '#C9A96E',
+              backgroundColor: 'rgba(201,169,110,0.08)',
+              border: '1px solid rgba(201,169,110,0.15)',
+            }}
+            aria-label="Mis datos"
+          >
+            <UserCircle size={18} weight="duotone" />
+            <span className="text-xs font-semibold hidden sm:inline">Mis datos</span>
+          </button>
+        )}
       </div>
 
       <div className="px-4 py-6 max-w-lg mx-auto flex flex-col gap-8">
@@ -296,6 +316,8 @@ export default function MisCitasPage() {
           </section>
         )}
       </div>
+
+      <MisDatosModal open={profileOpen} onClose={() => setProfileOpen(false)} />
     </div>
   )
 }
