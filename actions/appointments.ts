@@ -76,6 +76,18 @@ export async function bookAppointment(data: unknown, barber_id?: string | null):
 
   if (error) return { error: 'SLOT_TAKEN' as const }
 
+  // Persist name + phone back to the user's profile so future bookings
+  // auto-fill. Google never provides a phone number, so we capture it here
+  // on the first booking. Best-effort: never let this fail the booking.
+  try {
+    await supabase
+      .from('profiles')
+      .update({ full_name: client_name, phone: client_phone })
+      .eq('id', user.id)
+  } catch (e) {
+    console.warn('[bookAppointment] profile sync skipped:', e)
+  }
+
   revalidatePath('/')
   return { appointment }
 }

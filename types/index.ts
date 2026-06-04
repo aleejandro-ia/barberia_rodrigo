@@ -113,6 +113,28 @@ export interface Barber {
   created_at?: string
 }
 
+/* ─── Admin Clients view ────────────────────────────────────── */
+
+export interface ClientRecord {
+  /** Stable id: user_id for registered, 'phone:<digits>' for walk-ins. */
+  key: string
+  type: 'registered' | 'walkin'
+  name: string
+  email: string | null
+  phone: string
+  totalCount: number
+  /** Past appointments marked as attended. */
+  completedCount: number
+  /** Active future bookings. */
+  upcomingCount: number
+  cancelledCount: number
+  noShowCount: number
+  rescheduledCount: number
+  /** Most recent slot_date across all appointments (YYYY-MM-DD) or null. */
+  lastVisit: string | null
+  appointments: Appointment[]
+}
+
 export function isActiveFutureAppointment(appt: Appointment, today: string): boolean {
   return appt.status === 'confirmed' && appt.slot_date >= today
 }
