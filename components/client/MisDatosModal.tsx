@@ -3,15 +3,17 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'motion/react'
-import { X, Lock, Check, UserCircle } from '@phosphor-icons/react'
+import { X, Lock, Check, UserCircle, Info } from '@phosphor-icons/react'
 import { updateMyProfile } from '@/actions/profile'
 
 interface MisDatosModalProps {
   open: boolean
   onClose: () => void
+  variant?: 'default' | 'onboarding'
 }
 
-export default function MisDatosModal({ open, onClose }: MisDatosModalProps) {
+export default function MisDatosModal({ open, onClose, variant = 'default' }: MisDatosModalProps) {
+  const isOnboarding = variant === 'onboarding'
   const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -134,10 +136,10 @@ export default function MisDatosModal({ open, onClose }: MisDatosModalProps) {
                     className="text-lg font-semibold leading-tight"
                     style={{ color: '#F2EDE7', fontFamily: 'var(--font-serif)' }}
                   >
-                    Mis datos
+                    {isOnboarding ? '¡Bienvenido!' : 'Mis datos'}
                   </h2>
                   <p className="text-xs" style={{ color: '#7A7268' }}>
-                    Se usan al reservar tus citas
+                    {isOnboarding ? 'Completa tu perfil' : 'Se usan al reservar tus citas'}
                   </p>
                 </div>
               </div>
@@ -162,6 +164,23 @@ export default function MisDatosModal({ open, onClose }: MisDatosModalProps) {
                 </div>
               ) : (
                 <form onSubmit={handleSave} className="flex flex-col gap-4">
+                  {isOnboarding && (
+                    <div
+                      className="flex items-start gap-2.5 px-4 py-3 rounded-xl"
+                      style={{
+                        backgroundColor: 'rgba(201,169,110,0.07)',
+                        border: '1px solid rgba(201,169,110,0.18)',
+                      }}
+                    >
+                      <Info size={16} weight="fill" style={{ color: '#C9A96E', flexShrink: 0, marginTop: 1 }} />
+                      <p className="text-xs leading-relaxed" style={{ color: '#C9B79A' }}>
+                        Esto se guardará como predeterminado y se rellenará solo al
+                        reservar. ¿Necesitas cambiarlo? Entra en{' '}
+                        <span style={{ color: '#F2EDE7', fontWeight: 600 }}>Mis citas → Mis datos</span>.
+                      </p>
+                    </div>
+                  )}
+
                   {/* Email — read only */}
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-medium" style={{ color: '#7A7268' }}>
@@ -245,6 +264,8 @@ export default function MisDatosModal({ open, onClose }: MisDatosModalProps) {
                       <><Check size={16} weight="bold" /> Guardado</>
                     ) : saving ? (
                       'Guardando…'
+                    ) : isOnboarding ? (
+                      'Guardar y continuar'
                     ) : (
                       'Guardar cambios'
                     )}

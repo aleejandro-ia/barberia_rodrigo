@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Plus_Jakarta_Sans, Dancing_Script, Cormorant_Garamond } from 'next/font/google'
 import './globals.css'
+import ProfileOnboarding from '@/components/client/ProfileOnboarding'
 
 /* Main font — Plus Jakarta Sans: humanist grotesque, crisp rendering, premium feel */
 const outfit = Plus_Jakarta_Sans({
@@ -36,6 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         style={{ backgroundColor: '#0E0B08', color: '#F2EDE7' }}
       >
         {children}
+        <ProfileOnboarding />
       </body>
     </html>
   )
