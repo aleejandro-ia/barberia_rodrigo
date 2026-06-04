@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getUser, isAdmin } from '@/lib/auth'
+import { autoCompletePastAppointments } from '@/lib/autoComplete'
 import { NextResponse } from 'next/server'
 import type { Appointment, ClientRecord } from '@/types'
 
@@ -12,6 +13,14 @@ function normPhone(phone: string | null | undefined): string {
 export async function GET() {
   const user = await getUser()
   if (!isAdmin(user)) return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 })
+
+  // Auto-complete past confirmed appointments before reading, so counters
+  // and the timeline reflect "attended" without manual marking.
+  try {
+    await autoCompletePastAppointments(createAdminClient())
+  } catch (e) {
+    console.warn('[admin/clients] auto-complete skipped:', e)
+  }
 
   const supabase = await createClient()
 

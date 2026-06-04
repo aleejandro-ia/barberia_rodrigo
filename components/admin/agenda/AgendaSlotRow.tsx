@@ -322,6 +322,36 @@ export default function AgendaSlotRow({
           </>
         )}
 
+        {isCompleted && appt && (
+          <>
+            {onViewClientHistory && (
+              <button title="Ver cliente" style={actionBtn('#8A8078')} onMouseEnter={hoverIn('#8A8078')} onMouseLeave={hoverOut('#8A8078')} onClick={() => onViewClientHistory(appt)}>
+                <User size={16} />
+              </button>
+            )}
+            {onMarkNoShow && (
+              <button title="Marcar no-show" style={actionBtn('#EF4444')} onMouseEnter={hoverIn('#EF4444')} onMouseLeave={hoverOut('#EF4444')} onClick={() => onMarkNoShow(appt)}>
+                <UserMinus size={16} />
+              </button>
+            )}
+          </>
+        )}
+
+        {isNoShow && appt && (
+          <>
+            {onViewClientHistory && (
+              <button title="Ver cliente" style={actionBtn('#8A8078')} onMouseEnter={hoverIn('#8A8078')} onMouseLeave={hoverOut('#8A8078')} onClick={() => onViewClientHistory(appt)}>
+                <User size={16} />
+              </button>
+            )}
+            {onMarkCompleted && (
+              <button title="Marcar asistida" style={actionBtn('#4ADE80')} onMouseEnter={hoverIn('#4ADE80')} onMouseLeave={hoverOut('#4ADE80')} onClick={() => onMarkCompleted(appt)}>
+                <CheckCircle size={16} />
+              </button>
+            )}
+          </>
+        )}
+
         {isBlocked && (
           <>
             <button title="Desbloquear" style={actionBtn('#C9A96E')} onMouseEnter={hoverIn('#C9A96E')} onMouseLeave={hoverOut('#C9A96E')} onClick={() => onBlock(slot)}>

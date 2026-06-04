@@ -1,12 +1,20 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getUser, isAdmin } from '@/lib/auth'
+import { autoCompletePastAppointments } from '@/lib/autoComplete'
 import { NextRequest, NextResponse } from 'next/server'
 import type { AgendaDay, AgendaSlot, AvailabilitySlot, Appointment } from '@/types'
 
 export async function GET(req: NextRequest) {
   const user = await getUser()
   if (!isAdmin(user)) return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 })
+
+  // Auto-complete past confirmed appointments so the agenda reflects attendance.
+  try {
+    await autoCompletePastAppointments(createAdminClient())
+  } catch (e) {
+    console.warn('[admin/agenda] auto-complete skipped:', e)
+  }
 
   const { searchParams } = req.nextUrl
   const from      = searchParams.get('from')

@@ -294,9 +294,14 @@ export async function adminMarkNoShow(
     .eq('id', appointmentId)
     .maybeSingle()
   if (!appt) return { error: 'NOT_FOUND' }
-  if (appt.status !== 'confirmed') return { error: 'NOT_CONFIRMED' }
+  // Allow from 'confirmed' OR 'completed' — past confirmed bookings auto-flip
+  // to 'completed', so a forgotten no-show is corrected from that state too.
+  if (appt.status !== 'confirmed' && appt.status !== 'completed') return { error: 'NOT_CONFIRMED' }
 
-  await supabase.from('appointments').update({ status: 'no_show' }).eq('id', appointmentId)
+  await supabase
+    .from('appointments')
+    .update({ status: 'no_show', completed_at: null })
+    .eq('id', appointmentId)
 
   revalidate()
   revalidatePath('/mis-citas')
@@ -317,7 +322,8 @@ export async function adminMarkCompleted(
     .eq('id', appointmentId)
     .maybeSingle()
   if (!appt) return { error: 'NOT_FOUND' }
-  if (appt.status !== 'confirmed') return { error: 'NOT_CONFIRMED' }
+  // Allow from 'confirmed' OR 'no_show' — lets admin revert a wrong no-show.
+  if (appt.status !== 'confirmed' && appt.status !== 'no_show') return { error: 'NOT_CONFIRMED' }
 
   await supabase.from('appointments').update({
     status: 'completed',

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { sendReminderEmail } from '@/lib/email/resend'
 import { madridTimeToMs } from '@/lib/datetime'
+import { autoCompletePastAppointments } from '@/lib/autoComplete'
 
 export async function GET(req: Request) {
   // Auth check
@@ -24,6 +25,15 @@ export async function GET(req: Request) {
     serviceRoleKey,
     { auth: { autoRefreshToken: false, persistSession: false } }
   )
+
+  // Backstop: auto-complete past confirmed appointments (also done lazily on
+  // admin reads, but this catches days the admin never opens the panel).
+  let autoCompleted = 0
+  try {
+    autoCompleted = await autoCompletePastAppointments(supabaseAdmin)
+  } catch (e) {
+    console.warn('[cron/reminders] auto-complete skipped:', e)
+  }
 
   // Read reminder settings (booking_settings has public SELECT, but service role works too)
   const { data: settingsRows } = await supabaseAdmin
@@ -137,5 +147,5 @@ export async function GET(req: Request) {
     }
   }
 
-  return NextResponse.json({ processed24h, processed2h })
+  return NextResponse.json({ processed24h, processed2h, autoCompleted })
 }
