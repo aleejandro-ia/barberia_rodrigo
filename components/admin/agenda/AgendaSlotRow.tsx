@@ -168,7 +168,7 @@ export default function AgendaSlotRow({
 
   return (
     <div
-      className="flex items-stretch gap-4 md:gap-5 rounded-2xl transition-all duration-150 px-4 py-4 md:px-5 md:py-4"
+      className="flex flex-col md:flex-row md:items-stretch gap-3 md:gap-5 rounded-2xl transition-all duration-150 px-4 py-4 md:px-5 md:py-4"
       style={{
         backgroundColor: cardBg,
         backgroundImage: bgImage,
@@ -176,15 +176,15 @@ export default function AgendaSlotRow({
         borderLeft:      `4px solid ${accentColor}`,
       }}
     >
-      {/* ── Left: time ─────────────────────────────────────────── */}
+      {/* ── Left (mobile: top bar): time ───────────────────────── */}
       <div
-        className="flex flex-col justify-center flex-shrink-0 pr-4 md:pr-5"
-        style={{ minWidth: 76, borderRight: `1px solid ${borderColor}` }}
+        className="flex flex-row md:flex-col items-baseline md:items-start md:justify-center gap-2 md:gap-1 flex-shrink-0 pb-3 md:pb-0 md:pr-5 border-b md:border-b-0 md:border-r"
+        style={{ minWidth: 76, borderColor }}
       >
         <span className="font-bold tabular-nums leading-none" style={{ color: timeTxt, fontSize: '1.4rem' }}>
           {timeLabel(slot.start_time)}
         </span>
-        <span className="tabular-nums mt-1" style={{ color: '#5A5450', fontSize: '0.8rem' }}>
+        <span className="tabular-nums" style={{ color: '#5A5450', fontSize: '0.8rem' }}>
           {timeLabel(slot.end_time)}
         </span>
       </div>
@@ -266,8 +266,8 @@ export default function AgendaSlotRow({
         )}
       </div>
 
-      {/* ── Right: action buttons ──────────────────────────────── */}
-      <div className="flex flex-wrap items-center justify-end gap-2 flex-shrink-0 self-center" style={{ maxWidth: 132 }}>
+      {/* ── Right (mobile: bottom row): action buttons ─────────── */}
+      <div className="flex flex-wrap items-center justify-start md:justify-end gap-2 flex-shrink-0 md:self-center w-full md:w-auto md:max-w-[132px]">
         {isFree && (
           <>
             <button title="Crear cita"    style={actionBtn('#C9A96E')} onMouseEnter={hoverIn('#C9A96E')} onMouseLeave={hoverOut('#C9A96E')} onClick={() => onCreateAppointment(slot)}>
