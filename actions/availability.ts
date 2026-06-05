@@ -83,6 +83,112 @@ export async function bulkCreateSlots(data: unknown) {
   return { created: slots.length }
 }
 
+/**
+ * Open or close a set of hours across one or more dates for a barber — the
+ * engine behind the simplified "Horarios" designer.
+ *
+ * - Open  → upserts availability_slots (ignores duplicates).
+ * - Close → deletes matching slots, but SKIPS any with a confirmed booking
+ *           (same protection as deleteAvailabilitySlot). Returns how many were
+ *           skipped so the UI can warn.
+ *
+ * Reads/writes only availability_slots — client booking, agenda and the Hoy
+ * panel all read the same table, so changes reflect automatically.
+ */
+export async function applySchedule(input: {
+  barber_id: string
+  dates: string[]
+  times: { start_time: string; end_time: string }[]
+  action: 'open' | 'close'
+}): Promise<
+  | { opened: number; closed: number; skipped: number }
+  | { error: 'UNAUTHORIZED' | 'VALIDATION_ERROR' | 'PAST_DATE' | 'DB_ERROR' }
+> {
+  const user = await getUser()
+  if (!isAdmin(user)) return { error: 'UNAUTHORIZED' as const }
+
+  const { barber_id, dates, times, action } = input
+  const timeRe = /^\d{2}:\d{2}$/
+
+  if (!barber_id) return { error: 'VALIDATION_ERROR' as const }
+  if (!Array.isArray(dates) || dates.length === 0) return { error: 'VALIDATION_ERROR' as const }
+  if (!Array.isArray(times) || times.length === 0) return { error: 'VALIDATION_ERROR' as const }
+
+  const dateRe = /^\d{4}-\d{2}-\d{2}$/
+  for (const d of dates) if (!dateRe.test(d)) return { error: 'VALIDATION_ERROR' as const }
+  for (const t of times) {
+    const s = t.start_time.slice(0, 5)
+    const e = t.end_time.slice(0, 5)
+    if (!timeRe.test(s) || !timeRe.test(e) || s >= e) return { error: 'VALIDATION_ERROR' as const }
+  }
+
+  // Reject past dates (today allowed)
+  const today = new Date().toISOString().split('T')[0]
+  if (dates.some((d) => d < today)) return { error: 'PAST_DATE' as const }
+
+  const supabase = await createClient()
+
+  if (action === 'open') {
+    const rows: Array<{ date: string; barber_id: string; start_time: string; end_time: string }> = []
+    for (const date of dates) {
+      for (const t of times) {
+        rows.push({ date, barber_id, start_time: t.start_time.slice(0, 5), end_time: t.end_time.slice(0, 5) })
+      }
+    }
+    const { error } = await supabase
+      .from('availability_slots')
+      .upsert(rows, { onConflict: 'date,start_time,barber_id', ignoreDuplicates: true })
+    if (error) return { error: 'DB_ERROR' as const }
+
+    revalidatePath('/admin/schedule')
+    revalidatePath('/admin/agenda')
+    revalidatePath('/admin/hoy')
+    revalidatePath('/')
+    return { opened: rows.length, closed: 0, skipped: 0 }
+  }
+
+  // action === 'close'
+  const startSet = new Set(times.map((t) => t.start_time.slice(0, 5)))
+
+  // Existing slots for these dates+barber
+  const { data: existing, error: exErr } = await supabase
+    .from('availability_slots')
+    .select('id, date, start_time')
+    .in('date', dates)
+    .eq('barber_id', barber_id)
+  if (exErr) return { error: 'DB_ERROR' as const }
+
+  // Confirmed bookings for these dates+barber → protected, cannot close
+  const { data: appts } = await supabase
+    .from('appointments')
+    .select('slot_date, slot_start_time')
+    .in('slot_date', dates)
+    .eq('barber_id', barber_id)
+    .eq('status', 'confirmed')
+
+  const bookedSet = new Set(
+    (appts ?? []).map((a) => `${a.slot_date}|${a.slot_start_time.slice(0, 5)}`)
+  )
+
+  const targets = (existing ?? []).filter((s) => startSet.has(s.start_time.slice(0, 5)))
+  const deletable = targets.filter((s) => !bookedSet.has(`${s.date}|${s.start_time.slice(0, 5)}`))
+  const skipped = targets.length - deletable.length
+
+  if (deletable.length > 0) {
+    const { error: delErr } = await supabase
+      .from('availability_slots')
+      .delete()
+      .in('id', deletable.map((s) => s.id))
+    if (delErr) return { error: 'DB_ERROR' as const }
+  }
+
+  revalidatePath('/admin/schedule')
+  revalidatePath('/admin/agenda')
+  revalidatePath('/admin/hoy')
+  revalidatePath('/')
+  return { opened: 0, closed: deletable.length, skipped }
+}
+
 export async function deleteAvailabilitySlot(slotId: string) {
   const user = await getUser()
   if (!isAdmin(user)) return { error: 'UNAUTHORIZED' as const }

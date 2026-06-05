@@ -36,6 +36,12 @@ interface PremiumCalendarProps {
   renderDot?: (dateStr: string) => React.ReactNode
   /** Optional legend row below the grid. */
   legend?: React.ReactNode
+  /**
+   * Optional multi-select predicate. When provided, a day is highlighted as
+   * selected if this returns true (overrides the single `selectedDate` match).
+   * Backward compatible: callers that omit it keep single-select behavior.
+   */
+  isSelected?: (dateStr: string) => boolean
 }
 
 export default function PremiumCalendar({
@@ -49,6 +55,7 @@ export default function PremiumCalendar({
   getDayMeta,
   renderDot,
   legend,
+  isSelected: isSelectedFn,
 }: PremiumCalendarProps) {
   const shouldReduceMotion = useReducedMotion()
 
@@ -163,7 +170,7 @@ export default function PremiumCalendar({
         {days.map((day) => {
           const dateStr = format(day, 'yyyy-MM-dd')
           const meta = getDayMeta(dateStr, day)
-          const isSelected = selectedDate === dateStr
+          const isSelected = isSelectedFn ? isSelectedFn(dateStr) : selectedDate === dateStr
           const isToday = isSameDay(day, today)
           const clickable = !meta.disabled
 
