@@ -58,8 +58,8 @@
 3. **proxy.ts — NUNCA crear middleware.ts**
    Next.js 16 usa proxy.ts. Crear middleware.ts rompe el routing.
 
-4. **Admin = alejandronopez@gmail.com hardcoded**
-   isAdmin() en lib/auth.ts. No hay tabla admin_users.
+4. **Admin = alejandronopez@gmail.com — DOS sitios, deben coincidir**
+   App: `process.env.ADMIN_EMAIL` (lib/auth.ts + proxy.ts). DB: función `public.is_admin()` hardcodea el literal `'alejandronopez@gmail.com'` (usada en policies RLS). Si divergen → panel carga pero queries vacías, o lockout. No hay tabla admin_users. `is_admin()` tiene `search_path=''` (migr. 009) → si editas el cuerpo, cualifica todo con `public.`.
 
 5. **Imágenes = siempre placeholders, nunca externas**
    Usuario gestiona todas las imágenes desde admin panel.
