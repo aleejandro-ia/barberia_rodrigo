@@ -36,3 +36,23 @@ export async function autoCompletePastAppointments(admin: SupabaseClient): Promi
 
   return ids.length
 }
+
+// ── Throttled variant for lazy admin reads ──────────────────────────
+// Admin GETs (agenda, clients) used to run a full auto-complete scan on EVERY
+// request. The redesigned schedule designer refetches the agenda on every date
+// selection, so that was firing many redundant scans per minute. The daily cron
+// (/api/cron/reminders) is the authoritative pass; this lazy variant is only a
+// best-effort safety net, so collapsing it to at most once per instance per
+// THROTTLE_MS keeps the net while killing the hammering. In-memory state is
+// per-instance — fine for a backstop, no correctness dependency.
+const THROTTLE_MS = 5 * 60 * 1000
+let lastRun = 0
+
+export async function autoCompletePastAppointmentsThrottled(
+  admin: SupabaseClient,
+): Promise<number> {
+  const now = Date.now()
+  if (now - lastRun < THROTTLE_MS) return 0
+  lastRun = now
+  return autoCompletePastAppointments(admin)
+}

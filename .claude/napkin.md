@@ -4,12 +4,12 @@
 
 ## Errores y correcciones
 
-1. **Leer antes de Edit siempre, incluso post-compactación**
-   Tras compactación, Edit falla "File has not been read yet" aunque el contenido esté en el resumen.
-   Fix: Read con limit:1 antes de cualquier Edit.
+1. **Post-compactación: Read antes de Edit + verificar estado**
+   Tras compactación Edit falla "File has not been read yet" aunque esté en el resumen → Read antes de cualquier Edit.
+   Además muchos cambios ya estaban aplicados: leer el archivo antes de asumir que hay que cambiar. Evita "string not found" y edits duplicados.
 
-2. **Verificar qué ya está hecho antes de re-editar**
-   Post-compactación, muchos cambios ya estaban aplicados. Leer el archivo antes de asumir que hay que cambiar. Evita "string not found" y edits duplicados.
+2. **`shadcn` NO es solo CLI — es load-bearing en el build**
+   `app/globals.css` hace `@import "shadcn/tailwind.css"`. `npm uninstall shadcn` rompe el build ("Can't resolve 'shadcn/tailwind.css'"). NO quitarlo aunque parezca dependencia de CLI. Verificar imports en globals.css antes de tocar deps de estilos.
 
 3. **No commitear copy hasta que el usuario lo revise**
    Instrucción explícita del usuario. Cualquier cambio de contenido visible → esperar aprobación antes de commit/push.

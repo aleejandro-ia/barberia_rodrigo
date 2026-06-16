@@ -1,7 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getUser, isAdmin } from '@/lib/auth'
-import { autoCompletePastAppointments } from '@/lib/autoComplete'
+import { autoCompletePastAppointmentsThrottled } from '@/lib/autoComplete'
+import { getUserEmails } from '@/lib/userEmails'
 import { NextResponse } from 'next/server'
 import type { Appointment, ClientRecord } from '@/types'
 
@@ -15,9 +16,10 @@ export async function GET() {
   if (!isAdmin(user)) return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 })
 
   // Auto-complete past confirmed appointments before reading, so counters
-  // and the timeline reflect "attended" without manual marking.
+  // and the timeline reflect "attended" without manual marking (throttled —
+  // the daily cron is the authoritative pass).
   try {
-    await autoCompletePastAppointments(createAdminClient())
+    await autoCompletePastAppointmentsThrottled(createAdminClient())
   } catch (e) {
     console.warn('[admin/clients] auto-complete skipped:', e)
   }
@@ -39,21 +41,11 @@ export async function GET() {
 
   // Enrich registered appointments with the account email (auth.users).
   // Service-role only; degrades gracefully (walk-ins stay null).
-  const emailMap = new Map<string, string>()
+  let emailMap = new Map<string, string>()
   try {
-    const userIds = Array.from(
-      new Set(appts.map((a) => a.user_id).filter((id): id is string => !!id))
-    )
+    const userIds = appts.map((a) => a.user_id).filter((id): id is string => !!id)
     if (userIds.length > 0) {
-      const admin = createAdminClient()
-      const results = await Promise.all(
-        userIds.map(async (id) => {
-          const { data, error: e } = await admin.auth.admin.getUserById(id)
-          if (e || !data?.user?.email) return null
-          return [id, data.user.email] as const
-        })
-      )
-      for (const r of results) if (r) emailMap.set(r[0], r[1])
+      emailMap = await getUserEmails(createAdminClient(), userIds)
     }
   } catch (e) {
     console.warn('[admin/clients] email enrichment skipped:', e)

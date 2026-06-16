@@ -1,7 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getUser, isAdmin } from '@/lib/auth'
-import { autoCompletePastAppointments } from '@/lib/autoComplete'
+import { autoCompletePastAppointmentsThrottled } from '@/lib/autoComplete'
+import { getUserEmails } from '@/lib/userEmails'
 import { NextRequest, NextResponse } from 'next/server'
 import type { AgendaDay, AgendaSlot, AvailabilitySlot, Appointment } from '@/types'
 
@@ -9,9 +10,11 @@ export async function GET(req: NextRequest) {
   const user = await getUser()
   if (!isAdmin(user)) return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 })
 
-  // Auto-complete past confirmed appointments so the agenda reflects attendance.
+  // Best-effort auto-complete of past confirmed appointments (throttled — the
+  // daily cron is the authoritative pass). Keeps the agenda fresh without
+  // re-scanning on every date pick.
   try {
-    await autoCompletePastAppointments(createAdminClient())
+    await autoCompletePastAppointmentsThrottled(createAdminClient())
   } catch (e) {
     console.warn('[admin/agenda] auto-complete skipped:', e)
   }
@@ -71,24 +74,9 @@ export async function GET(req: NextRequest) {
   // Email lives in auth.users (not profiles) → needs service-role client.
   // Degrades gracefully: on any failure, emails stay null (walk-ins have no account).
   try {
-    const userIds = Array.from(
-      new Set(appts.map((a) => a.user_id).filter((id): id is string => !!id))
-    )
+    const userIds = appts.map((a) => a.user_id).filter((id): id is string => !!id)
     if (userIds.length > 0) {
-      const admin = createAdminClient()
-      // auth.users is NOT exposed via PostgREST by default — must use the
-      // Auth Admin API (GoTrue), which the service-role key authorizes.
-      const emailMap = new Map<string, string>()
-      const results = await Promise.all(
-        userIds.map(async (id) => {
-          const { data, error } = await admin.auth.admin.getUserById(id)
-          if (error || !data?.user?.email) return null
-          return [id, data.user.email] as const
-        })
-      )
-      for (const r of results) {
-        if (r) emailMap.set(r[0], r[1])
-      }
+      const emailMap = await getUserEmails(createAdminClient(), userIds)
       for (const a of appts) {
         if (a.user_id) a.client_email = emailMap.get(a.user_id) ?? null
       }
