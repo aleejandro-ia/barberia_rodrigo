@@ -31,7 +31,12 @@ const userCircle: React.CSSProperties = {
   textDecoration:  'none',
 }
 
-export default function NavBar() {
+interface NavBarProps {
+  /** Barber phone from booking_settings.whatsapp_phone (admin-editable). */
+  whatsappPhone?: string
+}
+
+export default function NavBar({ whatsappPhone }: NavBarProps) {
   const [scrolled,             setScrolled]             = useState(false)
   const [menuOpen,             setMenuOpen]             = useState(false)
   const [user,                 setUser]                 = useState<SupabaseUser | null>(null)
@@ -350,6 +355,7 @@ export default function NavBar() {
         onClose={() => setAppointmentModalOpen(false)}
         onLoginNeeded={() => { setAppointmentModalOpen(false); setAuthModalOpen(true) }}
         userId={user?.id ?? null}
+        whatsappPhone={whatsappPhone}
       />
     </>
   )

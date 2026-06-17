@@ -2,10 +2,16 @@
 
 import { motion, useReducedMotion } from 'motion/react'
 import { WhatsappLogo } from '@phosphor-icons/react'
+import { cleanPhone } from '@/lib/whatsapp'
 
-export default function WhatsAppButton() {
+interface WhatsAppButtonProps {
+  /** Barber phone from booking_settings.whatsapp_phone (admin-editable). */
+  phone?: string
+}
+
+export default function WhatsAppButton({ phone }: WhatsAppButtonProps) {
   const shouldReduceMotion = useReducedMotion()
-  const number = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '34000000000'
+  const number = cleanPhone(phone || process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '34600000000')
 
   return (
     <a

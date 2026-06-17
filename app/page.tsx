@@ -24,16 +24,25 @@ export default async function Home() {
   const galleryEnabled    = s.gallery_enabled    !== 'false'
   const beforeAfterEnabled = s.before_after_enabled !== 'false'
 
+  // Barber WhatsApp phone — single source of truth, editable in /admin/ajustes.
+  // Falls back to the build-time env var, then a placeholder, so links never 404.
+  const { data: bkRows } = await supabase
+    .from('booking_settings')
+    .select('value')
+    .eq('key', 'whatsapp_phone')
+    .maybeSingle()
+  const whatsappPhone = bkRows?.value || process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || ''
+
   return (
     <main className="overflow-x-hidden" style={{ backgroundColor: '#0E0B08' }}>
-      <NavBar />
+      <NavBar whatsappPhone={whatsappPhone} />
       <HeroSection heroImage={heroImage} />
       <AboutSection portrait={portrait} />
       <ServicesSection />
       {galleryEnabled    && <GallerySection />}
       {beforeAfterEnabled && <BeforeAfterSection />}
-      <BookingSection />
-      <WhatsAppButton />
+      <BookingSection whatsappPhone={whatsappPhone} />
+      <WhatsAppButton phone={whatsappPhone} />
     </main>
   )
 }

@@ -75,29 +75,37 @@ export default function GalleryCarousel({ images, loading }: GalleryCarouselProp
   useEffect(() => {
     if (reduce) return
 
-    const tick = () => {
-      if (!trackRef.current) return
+    let lastT = performance.now()
+
+    const tick = (now: number) => {
+      const track = trackRef.current
+      if (!track) { rafId.current = requestAnimationFrame(tick); return }
+
+      // Normalize every movement to a single 60fps frame. Without this the
+      // drift speed doubles on a 120Hz phone and visibly shifts fast↔slow when
+      // the device changes refresh rate (ProMotion / adaptive sync) — exactly
+      // the "va rápido y luego lento" stutter. Clamp big gaps (backgrounded
+      // tab) so we never leap a huge distance in one frame.
+      const dt = Math.min((now - lastT) / 16.6667, 2)
+      lastT = now
 
       if (!dragging.current) {
-        if (Math.abs(velRef.current) > 0.1) {
-          velRef.current *= FRICTION
-          posRef.current -= velRef.current   // inertia still moves left
+        if (Math.abs(velRef.current) > 0.03) {
+          // Inertia coasts in the SAME direction the finger flicked.
+          posRef.current += velRef.current * dt
+          velRef.current *= Math.pow(FRICTION, dt)
         } else {
           velRef.current = 0
-          posRef.current -= AUTO_SPEED        // constant slow drift left
+          posRef.current -= AUTO_SPEED * dt   // constant slow drift left
         }
       }
 
-      // Seamless reset: when we've scrolled past one full copy, snap back
-      if (posRef.current <= -totalW) {
-        posRef.current += totalW
-      }
-      // Also handle right-drag past start
-      if (posRef.current > 0) {
-        posRef.current -= totalW
-      }
+      // Seamless wrap in both directions.
+      if (posRef.current <= -totalW) posRef.current += totalW
+      else if (posRef.current > 0)   posRef.current -= totalW
 
-      trackRef.current.style.transform = `translateX(${posRef.current}px)`
+      // translate3d promotes the track to its own GPU layer → no repaint jank.
+      track.style.transform = `translate3d(${posRef.current}px, 0, 0)`
       rafId.current = requestAnimationFrame(tick)
     }
 
@@ -121,10 +129,12 @@ export default function GalleryCarousel({ images, loading }: GalleryCarouselProp
 
     const onMove = (e: PointerEvent) => {
       if (!dragging.current) return
-      const dx = e.clientX - lastX.current
-      posRef.current  += dx * DRAG_SENS
-      velRef.current   = dx * DRAG_SENS       // store for inertia
-      lastX.current    = e.clientX
+      const dx = (e.clientX - lastX.current) * DRAG_SENS
+      posRef.current += dx
+      // Low-pass + clamp the velocity so a single jumpy touch sample (mobile
+      // delivers pointer moves batched / irregularly) can't spike the inertia.
+      velRef.current = Math.max(-60, Math.min(60, velRef.current * 0.5 + dx * 0.5))
+      lastX.current  = e.clientX
     }
 
     const onUp = () => { dragging.current = false }

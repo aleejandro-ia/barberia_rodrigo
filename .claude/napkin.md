@@ -74,10 +74,11 @@
 
 8. **Infinite marquee carousel — patrón correcto**
    posRef (useRef, px) — nunca useState.
-   RAF loop: posRef -= AUTO_SPEED cada frame.
-   Triple array para contenido continuo.
-   Seamless reset: if posRef <= -totalW → posRef += totalW.
-   Drag: pointer events, velRef para inercia, FRICTION decay.
+   RAF loop con `tick(now)` + **delta-time**: `dt = min((now-lastT)/16.6667, 2)`, multiplicar AUTO_SPEED·dt y `FRICTION^dt`. SIN dt → velocidad x2 en móvil 120Hz/ProMotion → "va rápido y luego lento". Bug real arreglado 2026-06-17.
+   Inercia coast en MISMA dirección del flick: durante drag `pos += dx`; al soltar `pos += vel` (NO `-= vel`, invierte).
+   onMove: low-pass + clamp velRef (`*0.5 + dx*0.5`, ±60) — móvil entrega pointermove en lotes → spikes.
+   `translate3d(x,0,0)` no `translateX` → capa GPU, sin repaint jank.
+   Triple array; seamless reset: if posRef <= -totalW → posRef += totalW.
 
 9. **Booking step machine**
    Steps: 'date' → 'slot' → 'form' → 'confirmed' | 'blocked'

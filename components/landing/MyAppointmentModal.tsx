@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react'
 import { X, CalendarBlank, Clock, WhatsappLogo } from '@phosphor-icons/react'
 import { createClient } from '@/lib/supabase/client'
 import { cancelAppointment } from '@/actions/appointments'
+import { cleanPhone } from '@/lib/whatsapp'
 
 interface Appointment {
   id: string
@@ -20,6 +21,8 @@ interface MyAppointmentModalProps {
   onClose: () => void
   onLoginNeeded: () => void
   userId: string | null
+  /** Barber phone from booking_settings.whatsapp_phone (admin-editable). */
+  whatsappPhone?: string
 }
 
 function formatDate(dateStr: string) {
@@ -28,7 +31,7 @@ function formatDate(dateStr: string) {
   return date.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })
 }
 
-export default function MyAppointmentModal({ isOpen, onClose, onLoginNeeded, userId }: MyAppointmentModalProps) {
+export default function MyAppointmentModal({ isOpen, onClose, onLoginNeeded, userId, whatsappPhone }: MyAppointmentModalProps) {
   const [appointment, setAppointment] = useState<Appointment | null>(null)
   const [loading, setLoading] = useState(false)
   const [cancelling, setCancelling] = useState(false)
@@ -66,7 +69,7 @@ export default function MyAppointmentModal({ isOpen, onClose, onLoginNeeded, use
     }
   }
 
-  const whatsapp = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER
+  const whatsapp = cleanPhone(whatsappPhone || process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '34600000000')
 
   return (
     <AnimatePresence>

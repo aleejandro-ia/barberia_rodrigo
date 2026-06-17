@@ -4,19 +4,23 @@ import { motion } from 'motion/react'
 import { CheckCircle } from '@phosphor-icons/react'
 import { format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { cleanPhone } from '@/lib/whatsapp'
 
 interface BookingConfirmationProps {
   date: string
   startTime: string
   onBookAnother: () => void
+  /** Barber phone from booking_settings.whatsapp_phone (admin-editable). */
+  whatsappPhone?: string
 }
 
 export default function BookingConfirmation({
   date,
   startTime,
   onBookAnother,
+  whatsappPhone,
 }: BookingConfirmationProps) {
-  const whatsapp = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '34000000000'
+  const whatsapp = cleanPhone(whatsappPhone || process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '34600000000')
   const dateLabel = format(parseISO(date), "EEEE d 'de' MMMM yyyy", { locale: es })
 
   return (

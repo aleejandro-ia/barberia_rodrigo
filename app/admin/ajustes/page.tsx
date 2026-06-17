@@ -107,6 +107,35 @@ function NumberInput({ label, value, onChange, min, max }: {
   )
 }
 
+/* ─── Text input (saves on blur) ─────────────────────────────── */
+function TextInput({ label, value, onChange, onBlur, placeholder, hint }: {
+  label: string; value: string; onChange: (v: string) => void; onBlur: () => void; placeholder?: string; hint?: string
+}) {
+  return (
+    <div>
+      <label className="text-xs block mb-1" style={{ color: '#7A7268' }}>{label}</label>
+      <input
+        type="text"
+        value={value}
+        placeholder={placeholder}
+        onChange={e => onChange(e.target.value)}
+        onBlur={onBlur}
+        className="w-full"
+        style={{
+          backgroundColor: '#1C1915',
+          border:          '1px solid rgba(201,169,110,0.2)',
+          color:           '#F2EDE7',
+          borderRadius:    '0.75rem',
+          padding:         '0.5rem 0.75rem',
+          fontSize:        '0.875rem',
+          outline:         'none',
+        }}
+      />
+      {hint && <p className="text-xs mt-1.5" style={{ color: '#4A4540' }}>{hint}</p>}
+    </div>
+  )
+}
+
 /* ─── Section wrapper ────────────────────────────────────────── */
 function SectionBox({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -547,6 +576,9 @@ export default function AdminAjustesPage() {
   const [rulesLoading, setRulesLoading] = useState(true)
   const [saving,       setSaving]       = useState<string | null>(null)
 
+  // Negocio y contacto (text settings)
+  const [contact, setContact] = useState({ business_name: '', whatsapp_phone: '', business_location: '' })
+
   // Visibility toggles (gallery + before/after)
   const [galleryEnabled,    setGalleryEnabled]    = useState(true)
   const [beforeAfterEnabled,setBeforeAfterEnabled]= useState(true)
@@ -616,6 +648,11 @@ export default function AdminAjustesPage() {
         reminder_24h_enabled:    s.reminder_24h_enabled,
         reminder_2h_enabled:     s.reminder_2h_enabled,
       })
+      setContact({
+        business_name:     s.business_name ?? '',
+        whatsapp_phone:    s.whatsapp_phone ?? '',
+        business_location: s.business_location ?? '',
+      })
     } catch {
       // silently fail
     } finally {
@@ -665,6 +702,46 @@ export default function AdminAjustesPage() {
           Barberos
         </p>
         <BarberosSection />
+      </div>
+
+      {/* ── Section: Negocio y contacto ──────────────────────── */}
+      <div className="mb-6">
+        <p className="text-xs font-medium uppercase tracking-widest mb-3" style={{ color: '#4A4540' }}>
+          Negocio y contacto
+        </p>
+        {rulesLoading ? (
+          <div
+            className="rounded-2xl p-5 animate-pulse"
+            style={{ backgroundColor: '#161310', border: '1px solid rgba(201,169,110,0.06)', height: 200 }}
+          />
+        ) : (
+          <SectionBox title="Datos del negocio">
+            <div className="flex flex-col gap-4">
+              <TextInput
+                label={`Teléfono WhatsApp del barbero${saving === 'whatsapp_phone' ? ' — guardando…' : ''}`}
+                value={contact.whatsapp_phone}
+                onChange={v => setContact(c => ({ ...c, whatsapp_phone: v }))}
+                onBlur={() => saveSetting('whatsapp_phone', contact.whatsapp_phone.trim())}
+                placeholder="Ej. 612 345 678"
+                hint="Se usa en TODOS los botones de WhatsApp del sitio (reservas, mis citas, botón flotante). Con o sin +34."
+              />
+              <TextInput
+                label={`Nombre del negocio${saving === 'business_name' ? ' — guardando…' : ''}`}
+                value={contact.business_name}
+                onChange={v => setContact(c => ({ ...c, business_name: v }))}
+                onBlur={() => saveSetting('business_name', contact.business_name.trim())}
+                placeholder="Ej. BG Barber"
+              />
+              <TextInput
+                label={`Dirección${saving === 'business_location' ? ' — guardando…' : ''}`}
+                value={contact.business_location}
+                onChange={v => setContact(c => ({ ...c, business_location: v }))}
+                onBlur={() => saveSetting('business_location', contact.business_location.trim())}
+                placeholder="Ej. Calle Mayor 12, Madrid"
+              />
+            </div>
+          </SectionBox>
+        )}
       </div>
 
       {/* ── Section 1: Estado de servicios ───────────────────── */}

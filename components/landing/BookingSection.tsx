@@ -354,7 +354,12 @@ function ScissorsDivider() {
 /* ─────────────────────────────────────────────────
    Main BookingSection
 ───────────────────────────────────────────────── */
-export default function BookingSection() {
+interface BookingSectionProps {
+  /** Barber phone from booking_settings.whatsapp_phone (admin-editable). */
+  whatsappPhone?: string
+}
+
+export default function BookingSection({ whatsappPhone }: BookingSectionProps) {
   const shouldReduceMotion = useReducedMotion()
   const ease = [0.16, 1, 0.3, 1] as const
   const router = useRouter()
@@ -723,6 +728,7 @@ export default function BookingSection() {
                   date={confirmedAppointment.slot_date}
                   startTime={confirmedAppointment.slot_start_time}
                   onBookAnother={handleReset}
+                  whatsappPhone={whatsappPhone}
                 />
               </div>
             )}
@@ -837,6 +843,7 @@ export default function BookingSection() {
                   date={confirmedAppointment.slot_date}
                   startTime={confirmedAppointment.slot_start_time}
                   onBookAnother={handleReset}
+                  whatsappPhone={whatsappPhone}
                 />
               </div>
             ) : (
